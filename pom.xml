@@ -21,6 +21,8 @@
     <modules>
         <module>common</module>
         <module>employee-service</module>
+        <module>auth-service</module>
+        <module>notification-service</module>
     </modules>
 
     <dependencyManagement>
