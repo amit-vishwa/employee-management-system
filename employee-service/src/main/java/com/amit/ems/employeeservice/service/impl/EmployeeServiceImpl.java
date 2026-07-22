@@ -11,7 +11,9 @@ import com.amit.ems.employeeservice.service.EmployeeService;
 import com.amit.ems.employeeservice.strategy.EmployeeSearchStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final EmployeeMapper employeeMapper;
     private final Map<String, EmployeeSearchStrategy> searchStrategies;
+    private final RestTemplate restTemplate;
+
+    @Value("${notification.service-url}")
+    private String notificationServiceUrl;
 
     @Override
     public EmployeeDto createEmployee(EmployeeDto dto) {
@@ -32,7 +38,20 @@ public class EmployeeServiceImpl implements EmployeeService {
         Department department = resolveDepartment(dto.getDepartmentId());
         Employee employee = employeeMapper.toEntity(dto, department);
         Employee saved = employeeRepository.save(employee);
+        notifyEmployeeCreated(saved);
         return employeeMapper.toDto(saved);
+    }
+
+    private void notifyEmployeeCreated(Employee employee) {
+        try {
+            var event = Map.of(
+                    "employeeEmail", employee.getEmail(),
+                    "employeeName", employee.getFirstName() + " " + employee.getLastName()
+            );
+            restTemplate.postForEntity(notificationServiceUrl, event, Void.class);
+        } catch (Exception e) {
+            log.warn("Failed to notify notification-service: {}", e.getMessage());
+        }
     }
 
     @Override

@@ -1,0 +1,10 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: notification-service
+
+logging:
+  level:
+    com.amit.ems: DEBUG

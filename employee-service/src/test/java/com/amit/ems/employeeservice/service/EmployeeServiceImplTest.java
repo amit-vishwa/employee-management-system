@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -43,6 +45,9 @@ class EmployeeServiceImplTest {
 
     @Mock
     private EmployeeSearchStrategy designationSearchStrategy;
+
+    @Mock
+    private RestTemplate restTemplate;
 
     private EmployeeServiceImpl employeeService;
 
@@ -83,7 +88,11 @@ class EmployeeServiceImplTest {
         strategyMap.put("designation", designationSearchStrategy);
 
         employeeService = new EmployeeServiceImpl(
-                employeeRepository, departmentRepository, employeeMapper, strategyMap);
+                employeeRepository, departmentRepository, employeeMapper, strategyMap, restTemplate);
+
+        // @Value fields aren't populated outside a Spring context — set manually for the test
+        ReflectionTestUtils.setField(employeeService, "notificationServiceUrl",
+                "http://localhost:8083/api/v1/notifications/employee-created");
     }
 
     @Test
@@ -98,6 +107,22 @@ class EmployeeServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getEmail()).isEqualTo("john.doe@example.com");
         verify(employeeRepository, times(1)).save(employee);
+        verify(restTemplate, times(1)).postForEntity(anyString(), any(), eq(Void.class));
+    }
+
+    @Test
+    void createEmployee_whenNotificationServiceFails_shouldStillReturnSavedEmployeeDto() {
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
+        when(employeeMapper.toEntity(employeeDto, department)).thenReturn(employee);
+        when(employeeRepository.save(employee)).thenReturn(employee);
+        when(employeeMapper.toDto(employee)).thenReturn(employeeDto);
+        when(restTemplate.postForEntity(anyString(), any(), eq(Void.class)))
+                .thenThrow(new RuntimeException("notification-service unreachable"));
+
+        EmployeeDto result = employeeService.createEmployee(employeeDto);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getEmail()).isEqualTo("john.doe@example.com");
     }
 
     @Test
