@@ -24,3 +24,6 @@ logging:
 jwt:
   secret: c29tZUxvbmdTZWN1cmVSYW5kb21TZWNyZXRLZXlGb3JKV1RTaWduaW5nMTIzNDU2
   expiration-ms: 86400000
+
+notification:
+  service-url: http://localhost:8083/api/v1/notifications/employee-created
