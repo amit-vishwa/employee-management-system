@@ -4,10 +4,14 @@ server:
 spring:
   application:
     name: employee-service
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/ems_db
+#    username: root
+#    password: root
   datasource:
-    url: jdbc:mysql://localhost:3306/ems_db
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/ems_db
     username: root
-    password: root
+    password: ${DB_PASSWORD:yourpassword}
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,4 +30,5 @@ jwt:
   expiration-ms: 86400000
 
 notification:
-  service-url: http://localhost:8083/api/v1/notifications/employee-created
+#  service-url: http://localhost:8083/api/v1/notifications/employee-created
+  service-url: http://${NOTIFICATION_HOST:localhost}:8083/api/v1/notifications/employee-created
