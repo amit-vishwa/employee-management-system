@@ -1,3 +1,4 @@
+com\amit\ems\authservice\exception\UsernameAlreadyExistsException.class
 com\amit\ems\authservice\repository\UserRepository.class
 com\amit\ems\authservice\dto\RegisterRequest.class
 com\amit\ems\authservice\entity\Role.class

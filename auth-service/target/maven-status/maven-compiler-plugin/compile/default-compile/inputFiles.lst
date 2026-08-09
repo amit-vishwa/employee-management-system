@@ -8,6 +8,7 @@ D:\Amit\Work\Roadmaps\Projects\Resume Building\employee-management-system\auth-s
 D:\Amit\Work\Roadmaps\Projects\Resume Building\employee-management-system\auth-service\src\main\java\com\amit\ems\authservice\entity\Role.java
 D:\Amit\Work\Roadmaps\Projects\Resume Building\employee-management-system\auth-service\src\main\java\com\amit\ems\authservice\entity\User.java
 D:\Amit\Work\Roadmaps\Projects\Resume Building\employee-management-system\auth-service\src\main\java\com\amit\ems\authservice\exception\GlobalExceptionHandler.java
+D:\Amit\Work\Roadmaps\Projects\Resume Building\employee-management-system\auth-service\src\main\java\com\amit\ems\authservice\exception\UsernameAlreadyExistsException.java
 D:\Amit\Work\Roadmaps\Projects\Resume Building\employee-management-system\auth-service\src\main\java\com\amit\ems\authservice\repository\UserRepository.java
 D:\Amit\Work\Roadmaps\Projects\Resume Building\employee-management-system\auth-service\src\main\java\com\amit\ems\authservice\service\AuthService.java
 D:\Amit\Work\Roadmaps\Projects\Resume Building\employee-management-system\auth-service\src\main\java\com\amit\ems\authservice\service\impl\AuthServiceImpl.java
