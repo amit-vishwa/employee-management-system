@@ -3,15 +3,18 @@ package com.amit.ems.authservice.service.impl;
 import com.amit.ems.authservice.dto.AuthRequest;
 import com.amit.ems.authservice.dto.AuthResponse;
 import com.amit.ems.authservice.dto.RegisterRequest;
+import com.amit.ems.authservice.entity.Role;
 import com.amit.ems.authservice.entity.User;
 import com.amit.ems.authservice.repository.UserRepository;
 import com.amit.ems.authservice.service.AuthService;
 import com.amit.ems.common.security.JwtUtil;
+import com.amit.ems.authservice.exception.UsernameAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 @RequiredArgsConstructor
@@ -24,13 +27,31 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void register(RegisterRequest request) {
-        log.info("Registering user: {}", request.getUsername());
+        String username = request.getUsername();
+
+        log.info("Registering user: {}", username);
+
+        if (userRepository.existsByUsername(username)) {
+            throw new UsernameAlreadyExistsException(username);
+        }
+
         User user = User.builder()
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
+                .username(username)
+                .password(
+                        passwordEncoder.encode(request.getPassword())
+                )
+                .role(Role.EMPLOYEE)
                 .build();
-        userRepository.save(user);
+
+        try {
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException exception) {
+            /*
+             * The pre-check improves the normal error path, while the
+             * database unique constraint protects concurrent requests.
+             */
+            throw new UsernameAlreadyExistsException(username);
+        }
     }
 
     @Override

@@ -1,0 +1,53 @@
+# Maven build output
+**/target/
+
+# Other generated Java build output
+**/build/
+
+# Spring Initializr generated help files
+HELP.md
+
+# Java runtime and crash output
+hs_err_pid*
+replay_pid*
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse / Spring Tool Suite
+.classpath
+.project
+.settings/
+.factorypath
+.springBeans
+.sts4-cache/
+.apt_generated/
+
+# VS Code
+.vscode/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local application overrides
+application-local.yml
+application-local.yaml
+application-local.properties

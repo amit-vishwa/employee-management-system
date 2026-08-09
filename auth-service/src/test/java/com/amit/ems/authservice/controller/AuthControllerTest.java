@@ -10,7 +10,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
+import com.amit.ems.authservice.dto.RegisterRequest;
+import com.amit.ems.authservice.exception.UsernameAlreadyExistsException;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
@@ -37,7 +41,6 @@ class AuthControllerTest {
                         request != null
                                 && "amit".equals(request.getUsername())
                                 && "password123".equals(request.getPassword())
-                                && request.getRole() != null
                 )
         );
 
@@ -46,8 +49,7 @@ class AuthControllerTest {
                         .content("""
                                 {
                                   "username": "amit",
-                                  "password": "password123",
-                                  "role": "HR"
+                                  "password": "password123"
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -60,9 +62,6 @@ class AuthControllerTest {
                         "amit".equals(request.getUsername())
                                 && "password123".equals(
                                         request.getPassword()
-                                )
-                                && "HR".equals(
-                                        request.getRole().name()
                                 )
                 )
         );
@@ -102,8 +101,7 @@ class AuthControllerTest {
                         .content("""
                                 {
                                   "username": "",
-                                  "password": "",
-                                  "role": null
+                                  "password": ""
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -143,6 +141,31 @@ class AuthControllerTest {
                         .value("Invalid username or password"))
                 .andExpect(jsonPath("$.path")
                         .value("/api/v1/auth/login"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void register_shouldReturnConflictForDuplicateUsername()
+            throws Exception {
+
+        doThrow(new UsernameAlreadyExistsException("amit"))
+                .when(authService)
+                .register(any(RegisterRequest.class));
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "username": "amit",
+                              "password": "password123"
+                            }
+                            """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message")
+                        .value("Username already exists: amit"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/auth/register"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 }

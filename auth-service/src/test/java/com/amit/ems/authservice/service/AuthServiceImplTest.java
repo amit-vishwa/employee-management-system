@@ -5,6 +5,7 @@ import com.amit.ems.authservice.dto.AuthResponse;
 import com.amit.ems.authservice.dto.RegisterRequest;
 import com.amit.ems.authservice.entity.Role;
 import com.amit.ems.authservice.entity.User;
+import com.amit.ems.authservice.exception.UsernameAlreadyExistsException;
 import com.amit.ems.authservice.repository.UserRepository;
 import com.amit.ems.authservice.service.impl.AuthServiceImpl;
 import com.amit.ems.common.security.JwtUtil;
@@ -14,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -21,10 +23,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
@@ -46,7 +46,6 @@ class AuthServiceImplTest {
         RegisterRequest request = new RegisterRequest();
         request.setUsername("amit");
         request.setPassword("plain-password");
-        request.setRole(Role.HR);
 
         when(passwordEncoder.encode("plain-password"))
                 .thenReturn("encoded-password");
@@ -63,7 +62,65 @@ class AuthServiceImplTest {
 
         assertEquals("amit", savedUser.getUsername());
         assertEquals("encoded-password", savedUser.getPassword());
-        assertEquals(Role.HR, savedUser.getRole());
+        assertEquals(Role.EMPLOYEE, savedUser.getRole());
+    }
+
+    @Test
+    void register_shouldRejectExistingUsername() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("amit");
+        request.setPassword("plain-password");
+
+        when(userRepository.existsByUsername("amit"))
+                .thenReturn(true);
+
+        UsernameAlreadyExistsException exception = assertThrows(
+                UsernameAlreadyExistsException.class,
+                () -> authService.register(request)
+        );
+
+        assertEquals(
+                "Username already exists: amit",
+                exception.getMessage()
+        );
+
+        verify(userRepository).existsByUsername("amit");
+        verify(userRepository, never()).save(any(User.class));
+        verifyNoInteractions(passwordEncoder);
+    }
+
+    @Test
+    void register_shouldTranslateConcurrentDuplicateConstraintViolation() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("amit");
+        request.setPassword("plain-password");
+
+        when(userRepository.existsByUsername("amit"))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode("plain-password"))
+                .thenReturn("encoded-password");
+
+        when(userRepository.save(any(User.class)))
+                .thenThrow(
+                        new DataIntegrityViolationException(
+                                "Duplicate username"
+                        )
+                );
+
+        UsernameAlreadyExistsException exception = assertThrows(
+                UsernameAlreadyExistsException.class,
+                () -> authService.register(request)
+        );
+
+        assertEquals(
+                "Username already exists: amit",
+                exception.getMessage()
+        );
+
+        verify(userRepository).existsByUsername("amit");
+        verify(passwordEncoder).encode("plain-password");
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
@@ -191,4 +248,5 @@ class AuthServiceImplTest {
                 .role(role)
                 .build();
     }
+
 }
