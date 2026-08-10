@@ -4,14 +4,10 @@ server:
 spring:
   application:
     name: employee-service
-#  datasource:
-#    url: jdbc:mysql://localhost:3306/ems_db
-#    username: root
-#    password: root
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:3306/ems_db
-    username: root
-    password: ${DB_PASSWORD:yourpassword}
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/ems_db
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,7 +22,7 @@ logging:
     com.amit.ems: DEBUG
 
 jwt:
-  secret: c29tZUxvbmdTZWN1cmVSYW5kb21TZWNyZXRLZXlGb3JKV1RTaWduaW5nMTIzNDU2
+  secret: ${JWT_SECRET}
   expiration-ms: 86400000
 
 notification:
