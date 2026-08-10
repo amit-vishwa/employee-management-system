@@ -2,8 +2,10 @@ services:
   mysql-ems:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: ems_db
+      MYSQL_USER: ${EMS_DB_USERNAME:?EMS_DB_USERNAME must be set}
+      MYSQL_PASSWORD: ${EMS_DB_PASSWORD:?EMS_DB_PASSWORD must be set}
+      MYSQL_ROOT_PASSWORD: ${EMS_DB_ROOT_PASSWORD:?EMS_DB_ROOT_PASSWORD must be set}
     ports:
       - "3307:3306"
     volumes:
@@ -12,8 +14,10 @@ services:
   mysql-auth:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: auth_db
+      MYSQL_USER: ${AUTH_DB_USERNAME:?AUTH_DB_USERNAME must be set}
+      MYSQL_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
+      MYSQL_ROOT_PASSWORD: ${AUTH_DB_ROOT_PASSWORD:?AUTH_DB_ROOT_PASSWORD must be set}
     ports:
       - "3308:3306"
     volumes:
@@ -27,7 +31,9 @@ services:
       - "8082:8082"
     environment:
       DB_HOST: mysql-auth
-      DB_PASSWORD: root
+      DB_USERNAME: ${AUTH_DB_USERNAME:?AUTH_DB_USERNAME must be set}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
     depends_on:
       - mysql-auth
 
@@ -39,7 +45,9 @@ services:
       - "8081:8081"
     environment:
       DB_HOST: mysql-ems
-      DB_PASSWORD: root
+      DB_USERNAME: ${EMS_DB_USERNAME:?EMS_DB_USERNAME must be set}
+      DB_PASSWORD: ${EMS_DB_PASSWORD:?EMS_DB_PASSWORD must be set}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       NOTIFICATION_HOST: notification-service
     depends_on:
       - mysql-ems
