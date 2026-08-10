@@ -28,3 +28,12 @@ jwt:
 notification:
 #  service-url: http://localhost:8083/api/v1/notifications/employee-created
   service-url: http://${NOTIFICATION_HOST:localhost}:8083/api/v1/notifications/employee-created
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
