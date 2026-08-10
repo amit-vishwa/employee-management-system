@@ -58,25 +58,151 @@ Validate the Compose configuration without printing resolved credentials:
 docker compose config --quiet
 ```
 
-Start the complete application:
+## Docker Runtime Operations
+
+Build the service images:
 
 ```bash
-docker compose up --build
+docker compose build
 ```
 
-Stop the application:
+Start the complete stack and wait until every service is healthy:
+
+```bash
+docker compose up -d --wait --wait-timeout 300
+```
+
+Check container status:
+
+```bash
+docker compose ps
+```
+
+The expected healthy stack contains:
+
+- `mysql-ems`
+- `mysql-auth`
+- `auth-service`
+- `employee-service`
+- `notification-service`
+
+Verify the public health endpoints:
+
+```bash
+curl --fail http://localhost:8081/actuator/health
+curl --fail http://localhost:8082/actuator/health
+curl --fail http://localhost:8083/actuator/health
+```
+
+Each endpoint should return:
+
+```json
+{"status":"UP"}
+```
+
+Health endpoints are public so Docker can call them, but business APIs remain protected by JWT authorization.
+
+Stop all containers while preserving database data:
 
 ```bash
 docker compose down
 ```
 
-To also remove local database volumes:
+## Logs and Troubleshooting
+
+View the status of running and failed containers:
+
+```bash
+docker compose ps --all
+```
+
+View logs for all services:
+
+```bash
+docker compose logs --tail=200
+```
+
+View logs for a specific service:
+
+```bash
+docker compose logs --tail=200 employee-service
+docker compose logs --tail=200 auth-service
+docker compose logs --tail=200 notification-service
+```
+
+Follow logs in real time:
+
+```bash
+docker compose logs --follow employee-service
+```
+
+### Docker daemon is unavailable
+
+An error containing the following text means the Docker engine is not running:
+
+```text
+failed to connect to the docker API
+```
+
+Start Docker Desktop or the selected compatible container engine, wait until it is ready, and rerun the command.
+
+### Maven reports missing child modules during an image build
+
+Every service Dockerfile must copy the root POM and all module POMs before Maven constructs the reactor. Source code is copied only for the modules required by that image.
+
+This preserves Docker dependency-layer caching while allowing Maven to validate the complete multi-module project.
+
+### Container reports `no main manifest attribute`
+
+The service JAR was packaged as a regular Maven JAR rather than an executable Spring Boot JAR.
+
+The parent Maven configuration binds the Spring Boot `repackage` goal for service modules. A valid executable service JAR contains `BOOT-INF/` entries and can run with:
+
+```bash
+java -jar app.jar
+```
+
+### Container is unhealthy
+
+Inspect status and application logs:
+
+```bash
+docker compose ps --all
+docker compose logs --tail=200 <service-name>
+```
+
+Database containers may take longer during first-time initialization. Use the Compose wait option rather than assuming that a started container is ready.
+
+### Existing-volume credentials
+
+The official MySQL image processes `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_ROOT_PASSWORD` only when initializing an empty data directory.
+
+Changing values in `.env` does not update users or passwords stored in an existing volume. Rotate credentials through MySQL administration or deliberately recreate disposable local volumes.
+
+## Resetting Local Database Data
+
+To remove containers and permanently delete both local database volumes:
 
 ```bash
 docker compose down --volumes
 ```
 
-Removing volumes permanently deletes the local container database data.
+This deletes all locally stored:
+
+- Authentication users
+- Employees
+- Departments
+- Database schemas and data
+
+Use this only when the local data is disposable or has been backed up.
+
+The next startup recreates the databases and dedicated application users:
+
+```bash
+docker compose up -d --build --wait --wait-timeout 300
+```
+
+Never use volume deletion as a routine fix for an unexplained startup problem. Inspect status and logs first.
 
 ## Running Services Directly
 
