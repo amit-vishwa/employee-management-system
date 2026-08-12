@@ -30,6 +30,9 @@ public class Employee {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(name = "auth_username", unique = true)
+    private String authUsername;
+
     private String designation;
 
     private LocalDate dateOfJoining;

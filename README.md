@@ -100,7 +100,7 @@ Each endpoint should return:
 {"status":"UP"}
 ```
 
-Health endpoints are public so Docker can call them, but business APIs remain protected by JWT authorization.
+Health endpoints are public so Docker can call them. Employee and department business APIs remain JWT-protected. Authentication endpoints are intentionally public, while notification-service currently exposes an unauthenticated internal endpoint as a known limitation.
 
 Stop all containers while preserving database data:
 
@@ -243,6 +243,91 @@ Both services must use the same JWT secret: auth-service signs tokens and employ
 | Deployment | Runtime environment variables or platform secrets |
 
 Required configuration fails fast when missing. The application does not contain fallback production passwords or a fallback JWT signing key.
+
+## API Documentation
+
+Each HTTP service generates an independent OpenAPI specification and Swagger UI.
+
+| Service | OpenAPI JSON | Swagger UI |
+|---|---|---|
+| employee-service | http://localhost:8081/v3/api-docs | http://localhost:8081/swagger-ui.html |
+| auth-service | http://localhost:8082/v3/api-docs | http://localhost:8082/swagger-ui.html |
+| notification-service | http://localhost:8083/v3/api-docs | http://localhost:8083/swagger-ui.html |
+
+Employee-service Swagger UI defines a `bearerAuth` security scheme.
+
+To call a protected endpoint:
+
+1. Register and log in through auth-service.
+2. Copy the returned JWT without the `Bearer` prefix.
+3. Select **Authorize** in employee-service Swagger UI.
+4. Enter the JWT.
+5. Swagger UI adds the `Bearer` prefix automatically.
+
+Public registration creates an `EMPLOYEE` account. That token can access only `GET /api/v1/employees/me`, and only after an ADMIN or HR links an employee record through `authUsername`. Employee and department management operations require an ADMIN or HR token.
+
+The generated contract documents operation summaries, validation responses, authorization failures, resource-not-found responses, and uniqueness conflicts.
+
+## Authorization Model
+
+| Role | Employee permissions | Department permissions |
+|---|---|---|
+| ADMIN | Full management | Full management |
+| HR | Full management | Full management |
+| EMPLOYEE | Read the explicitly linked record through `GET /api/v1/employees/me` | None |
+
+Employee ownership is represented by:
+
+```text
+JWT subject username <-> employee.authUsername
+```
+
+The employee service stores only the external authentication username. It does not share the auth-service user entity or database.
+
+An EMPLOYEE cannot:
+
+- List all employees
+- Access an employee by numeric ID
+- Create, update, or delete employees
+- Access department endpoints
+
+Existing employee records may have no authentication username. This allows employee records and login accounts to remain separate concepts.
+
+## API Error Contract
+
+Handled authentication and employee-domain errors use this standard response structure:
+
+```json
+{
+  "timestamp": "2026-08-12T12:00:00",
+  "status": 409,
+  "message": "Employee email already exists: employee@example.com",
+  "path": "/api/v1/employees"
+}
+```
+
+Common status codes:
+
+| Status | Meaning |
+|---:|---|
+| 400 | Request validation failed or an unsupported criterion was supplied |
+| 401 | Authentication credentials were rejected by an auth-service operation |
+| 403 | A JWT is missing or invalid, or the authenticated role is not permitted |
+| 404 | The requested or linked resource was not found |
+| 409 | A unique username, employee email, or employee ownership link already exists |
+| 500 | An unexpected server error occurred; complete cross-service normalization remains pending |
+
+Database uniqueness constraints remain the final protection against concurrent requests. Application-level checks provide clearer errors during normal execution.
+
+## Important API Limitations
+
+- Public registration always creates an `EMPLOYEE` account.
+- No production administrative account-provisioning API exists yet.
+- Local smoke tests may promote a disposable account directly in the local database.
+- Notification-service currently logs intended email activity; it does not send real email.
+- Employee-to-auth ownership is linked by username rather than a cross-database foreign key.
+- Database schema evolution currently relies on Hibernate `ddl-auto`; versioned migrations remain pending.
+- Notification-service is intended for internal service-to-service use but currently has no authentication or network-level access restriction.
 
 ## Security Rules
 

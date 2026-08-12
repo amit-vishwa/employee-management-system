@@ -1,5 +1,6 @@
 package com.amit.ems.employeeservice.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,13 @@ public class EmployeeDto {
     @Email(message = "Valid email is required")
     @NotBlank(message = "Email is required")
     private String email;
+
+    @Schema(
+            description = "Authentication username linked to this employee",
+            example = "amit",
+            nullable = true
+    )
+    private String authUsername;
 
     private String designation;
 
