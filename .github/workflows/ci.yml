@@ -58,3 +58,26 @@ jobs:
             **/target/spotbugsXml.xml
           if-no-files-found: warn
           retention-days: 7
+
+  docker-build:
+    name: Docker Image Build
+    needs: maven-verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Create CI environment file
+        run: cp .env.example .env
+
+      - name: Validate Docker Compose model
+        run: docker compose config --quiet
+
+      - name: Build application images
+        run: |
+          docker compose build \
+            auth-service \
+            employee-service \
+            notification-service
