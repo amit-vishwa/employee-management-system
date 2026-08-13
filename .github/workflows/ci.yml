@@ -38,3 +38,13 @@ jobs:
 
       - name: Verify Maven reactor
         run: ./mvnw --batch-mode --no-transfer-progress clean verify
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-reports
+          path: |
+            **/target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 7
