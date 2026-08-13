@@ -1,6 +1,8 @@
 # Employee Management System
 
-A Spring Boot microservices learning project demonstrating employee and department management, JWT authentication, service-to-service communication, automated testing, and Docker-based local orchestration.
+[![CI](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml)
+
+A Spring Boot microservices learning project demonstrating employee and department management, JWT authentication, role-based authorization, service-to-service communication, automated testing, static analysis, and Docker-based local orchestration.
 
 ## Services
 
@@ -30,7 +32,85 @@ Run the complete Maven reactor:
 ./mvnw clean verify
 ```
 
-Tests use isolated test configuration. They do not require local MySQL or production credentials.
+The Maven `verify` lifecycle performs:
+
+- Compilation and packaging for the complete multi-module reactor
+- 53 automated tests across the four code modules
+- JaCoCo coverage-report generation
+- SpotBugs static analysis
+- Build failure for medium-or-higher-confidence SpotBugs findings
+
+Tests use isolated H2-backed test configuration. They do not require local MySQL, Docker, or production credentials.
+
+Local reports are generated under each module:
+
+```text
+<module>/target/site/jacoco/index.html
+<module>/target/site/jacoco/jacoco.xml
+<module>/target/spotbugsXml.xml
+```
+
+JaCoCo currently provides an honest coverage baseline rather than enforcing an arbitrary global percentage. The initial employee-service baseline is:
+
+- Instruction coverage: 68%
+- Branch coverage: 52%
+- Service implementation instruction coverage: 94%
+- Service implementation branch coverage: 83%
+
+The baseline shows that core business services have strong focused coverage while controller, security, mapper, strategy, and framework-wiring coverage still has room for improvement.
+
+## Continuous Integration
+
+GitHub Actions runs on:
+
+- Pushes to `master`
+- Pull requests targeting `master`
+- Manual workflow dispatch
+
+The pipeline executes two ordered jobs.
+
+### 1. Maven Verify
+
+The first job:
+
+- Uses Eclipse Temurin Java 17
+- Runs the complete Maven reactor
+- Executes all automated tests
+- Generates JaCoCo coverage reports
+- Runs the SpotBugs quality gate
+- Uploads `jacoco-reports`
+- Uploads `spotbugs-reports`
+- Retains report artifacts for seven days
+
+### 2. Docker Image Build
+
+The second job:
+
+- Runs only after Maven verification succeeds
+- Creates a temporary CI environment file from `.env.example`
+- Validates the Docker Compose model
+- Builds the `auth-service` image
+- Builds the `employee-service` image
+- Builds the `notification-service` image
+- Does not start containers
+- Does not publish images to a registry
+
+The dependency between the jobs ensures that Docker resources are not spent building code that has already failed compilation, tests, coverage generation, or static analysis.
+
+## Dependency Update Automation
+
+Dependabot checks the repository weekly for:
+
+- Maven dependency and plugin updates
+- GitHub Actions updates
+
+Maven minor and patch updates are grouped to reduce pull-request noise. Major updates remain separate because they may require migration work.
+
+GitHub Actions updates are grouped under the same CI concern.
+
+Dependabot never merges updates automatically. Every proposed update must be reviewed and pass the complete CI pipeline.
+
+No paid GitHub Advanced Security feature is required for this workflow.
 
 ## Secure Local Configuration
 
@@ -179,6 +259,33 @@ The official MySQL image processes `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWO
 
 Changing values in `.env` does not update users or passwords stored in an existing volume. Rotate credentials through MySQL administration or deliberately recreate disposable local volumes.
 
+### SpotBugs fails the Maven build
+
+SpotBugs findings appear near the end of the failing module’s Maven output.
+
+Do not immediately suppress the finding or reduce the configured threshold. First determine whether it represents:
+
+- A real correctness defect
+- A security or portability risk
+- Generated-code noise
+- A justified false positive
+
+For example, SpotBugs identified that JWT signing used `String.getBytes()` without an explicit encoding. The implementation was corrected to use UTF-8 so signing keys remain deterministic across Windows and Linux.
+
+### Coverage reports are missing
+
+JaCoCo reports are generated during the Maven `verify` phase.
+
+Use:
+
+```bash
+./mvnw clean verify
+```
+
+Running only `test` may execute tests without completing every configured reporting step.
+
+The root project is a POM-only aggregator, so it does not produce a meaningful code-coverage report. Reports are expected in the four code modules.
+
 ## Resetting Local Database Data
 
 To remove containers and permanently delete both local database volumes:
@@ -264,7 +371,9 @@ To call a protected endpoint:
 4. Enter the JWT.
 5. Swagger UI adds the `Bearer` prefix automatically.
 
-Public registration creates an `EMPLOYEE` account. That token can access only `GET /api/v1/employees/me`, and only after an ADMIN or HR links an employee record through `authUsername`. Employee and department management operations require an ADMIN or HR token.
+Public registration creates an `EMPLOYEE` account. That token can access only `GET /api/v1/employees/me`, and only after an ADMIN or HR links an employee record through `authUsername`.
+
+Employee and department management operations require an ADMIN or HR token.
 
 The generated contract documents operation summaries, validation responses, authorization failures, resource-not-found responses, and uniqueness conflicts.
 
@@ -328,12 +437,17 @@ Database uniqueness constraints remain the final protection against concurrent r
 - Employee-to-auth ownership is linked by username rather than a cross-database foreign key.
 - Database schema evolution currently relies on Hibernate `ddl-auto`; versioned migrations remain pending.
 - Notification-service is intended for internal service-to-service use but currently has no authentication or network-level access restriction.
+- JWT invalid or missing-token responses currently return HTTP 403 from employee-service; consistent HTTP 401 authentication-entry-point handling remains a future improvement.
+- Container images are verified in CI but are not published to a registry.
 
 ## Security Rules
 
 - Never commit `.env`.
 - Never place real credentials in `.env.example`.
+- Never commit JWT tokens or generated signing secrets.
 - Use different root and application database passwords.
 - Applications connect through dedicated database users rather than MySQL root.
 - Rotate a credential immediately if it is printed, shared, or committed.
 - Keep the JWT signing secret identical across token-producing and token-validating services.
+- JWT secret text is converted to key bytes using explicit UTF-8 encoding for deterministic behavior across operating systems.
+- Dependabot pull requests must pass CI before they are merged.
