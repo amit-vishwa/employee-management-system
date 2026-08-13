@@ -48,3 +48,13 @@ jobs:
             **/target/site/jacoco/
           if-no-files-found: warn
           retention-days: 7
+
+      - name: Upload SpotBugs reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: spotbugs-reports
+          path: |
+            **/target/spotbugsXml.xml
+          if-no-files-found: warn
+          retention-days: 7
