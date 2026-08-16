@@ -9,18 +9,21 @@ import com.amit.ems.employeeservice.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class DepartmentServiceImpl implements DepartmentService {
 
     private final DepartmentRepository departmentRepository;
     private final DepartmentMapper departmentMapper;
 
     @Override
+    @Transactional
     public DepartmentDto createDepartment(DepartmentDto dto) {
         log.info("Creating department with name: {}", dto.getName());
         Department department = departmentMapper.toEntity(dto);
@@ -44,6 +47,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    @Transactional
     public DepartmentDto updateDepartment(Long id, DepartmentDto dto) {
         Department existing = departmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + id));
@@ -53,6 +57,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    @Transactional
     public void deleteDepartment(Long id) {
         if (!departmentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Department not found with id: " + id);

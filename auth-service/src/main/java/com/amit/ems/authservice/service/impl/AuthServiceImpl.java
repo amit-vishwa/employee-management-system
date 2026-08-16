@@ -15,10 +15,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -26,6 +28,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
 
     @Override
+    @Transactional
     public void register(RegisterRequest request) {
         String username = request.getUsername();
 
