@@ -21,6 +21,7 @@
         <jacoco.version>0.8.15</jacoco.version>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
+        <resilience4j.version>2.4.0</resilience4j.version>
     </properties>
 
     <modules>
@@ -65,6 +66,12 @@
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-spring-boot3</artifactId>
+                <version>${resilience4j.version}</version>
             </dependency>
 
         </dependencies>

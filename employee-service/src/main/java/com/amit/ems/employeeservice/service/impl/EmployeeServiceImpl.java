@@ -1,9 +1,11 @@
 package com.amit.ems.employeeservice.service.impl;
 
 import com.amit.ems.common.exception.ResourceNotFoundException;
+import com.amit.ems.common.web.CorrelationIdFilter;
 import com.amit.ems.employeeservice.dto.EmployeeDto;
 import com.amit.ems.employeeservice.entity.Department;
 import com.amit.ems.employeeservice.entity.Employee;
+import com.amit.ems.employeeservice.event.EmployeeCreatedEvent;
 import com.amit.ems.employeeservice.exception.EmployeeEmailAlreadyExistsException;
 import com.amit.ems.employeeservice.exception.EmployeeOwnershipAlreadyExistsException;
 import com.amit.ems.employeeservice.mapper.EmployeeMapper;
@@ -13,10 +15,11 @@ import com.amit.ems.employeeservice.service.EmployeeService;
 import com.amit.ems.employeeservice.strategy.EmployeeSearchStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.MDC;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -24,18 +27,17 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final EmployeeMapper employeeMapper;
     private final Map<String, EmployeeSearchStrategy> searchStrategies;
-    private final RestTemplate restTemplate;
-
-    @Value("${notification.service-url}")
-    private String notificationServiceUrl;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
+    @Transactional
     public EmployeeDto createEmployee(EmployeeDto dto) {
         log.info("Creating employee with email: {}", dto.getEmail());
 
@@ -57,20 +59,17 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new EmployeeEmailAlreadyExistsException(dto.getEmail());
         }
 
-        notifyEmployeeCreated(saved);
-        return employeeMapper.toDto(saved);
-    }
+        eventPublisher.publishEvent(
+                new EmployeeCreatedEvent(
+                        saved.getEmail(),
+                        saved.getFirstName()
+                                + " "
+                                + saved.getLastName(),
+                        MDC.get(CorrelationIdFilter.MDC_KEY)
+                )
+        );
 
-    private void notifyEmployeeCreated(Employee employee) {
-        try {
-            var event = Map.of(
-                    "employeeEmail", employee.getEmail(),
-                    "employeeName", employee.getFirstName() + " " + employee.getLastName()
-            );
-            restTemplate.postForEntity(notificationServiceUrl, event, Void.class);
-        } catch (Exception e) {
-            log.warn("Failed to notify notification-service: {}", e.getMessage());
-        }
+        return employeeMapper.toDto(saved);
     }
 
     @Override
@@ -89,6 +88,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @Transactional
     public EmployeeDto updateEmployee(Long id, EmployeeDto dto) {
         Employee existing = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -173,6 +173,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @Transactional
     public void deleteEmployee(Long id) {
         if (!employeeRepository.existsById(id)) {
             throw new ResourceNotFoundException("Employee not found with id: " + id);

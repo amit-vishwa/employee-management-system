@@ -4,6 +4,7 @@ import com.amit.ems.common.exception.ResourceNotFoundException;
 import com.amit.ems.employeeservice.dto.EmployeeDto;
 import com.amit.ems.employeeservice.entity.Department;
 import com.amit.ems.employeeservice.entity.Employee;
+import com.amit.ems.employeeservice.event.EmployeeCreatedEvent;
 import com.amit.ems.employeeservice.exception.EmployeeEmailAlreadyExistsException;
 import com.amit.ems.employeeservice.exception.EmployeeOwnershipAlreadyExistsException;
 import com.amit.ems.employeeservice.mapper.EmployeeMapper;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
@@ -63,7 +65,7 @@ class EmployeeServiceImplTest {
     private EmployeeSearchStrategy designationSearchStrategy;
 
     @Mock
-    private RestTemplate restTemplate;
+    private ApplicationEventPublisher eventPublisher;
 
     private EmployeeServiceImpl employeeService;
 
@@ -118,15 +120,9 @@ class EmployeeServiceImplTest {
                 departmentRepository,
                 employeeMapper,
                 strategyMap,
-                restTemplate
+                eventPublisher
         );
 
-        ReflectionTestUtils.setField(
-                employeeService,
-                "notificationServiceUrl",
-                "http://localhost:8083/api/v1/"
-                        + "notifications/employee-created"
-        );
     }
 
     @Test
@@ -159,47 +155,9 @@ class EmployeeServiceImplTest {
         verify(employeeRepository)
                 .existsByAuthUsername(AUTH_USERNAME);
         verify(employeeRepository).save(employee);
-        verify(restTemplate).postForEntity(
-                anyString(),
-                any(),
-                eq(Void.class)
+        verify(eventPublisher).publishEvent(
+                any(EmployeeCreatedEvent.class)
         );
-    }
-
-    @Test
-    void createEmployee_whenNotificationServiceFails_shouldStillReturnSavedEmployeeDto() {
-        when(employeeRepository.existsByEmail(EMPLOYEE_EMAIL))
-                .thenReturn(false);
-        when(employeeRepository.existsByAuthUsername(
-                AUTH_USERNAME
-        )).thenReturn(false);
-        when(departmentRepository.findById(DEPARTMENT_ID))
-                .thenReturn(Optional.of(department));
-        when(employeeMapper.toEntity(employeeDto, department))
-                .thenReturn(employee);
-        when(employeeRepository.save(employee))
-                .thenReturn(employee);
-        when(employeeMapper.toDto(employee))
-                .thenReturn(employeeDto);
-        when(restTemplate.postForEntity(
-                anyString(),
-                any(),
-                eq(Void.class)
-        )).thenThrow(
-                new RuntimeException(
-                        "notification-service unreachable"
-                )
-        );
-
-        EmployeeDto result =
-                employeeService.createEmployee(employeeDto);
-
-        assertThat(result).isSameAs(employeeDto);
-        assertThat(result.getEmail())
-                .isEqualTo(EMPLOYEE_EMAIL);
-
-        verify(employeeRepository).save(employee);
-        verify(employeeMapper).toDto(employee);
     }
 
     @Test
@@ -224,7 +182,7 @@ class EmployeeServiceImplTest {
         verifyNoInteractions(
                 departmentRepository,
                 employeeMapper,
-                restTemplate
+                eventPublisher
         );
     }
 
@@ -258,11 +216,7 @@ class EmployeeServiceImplTest {
                 );
 
         verify(employeeRepository).save(employee);
-        verify(restTemplate, never()).postForEntity(
-                anyString(),
-                any(),
-                eq(Void.class)
-        );
+        verify(eventPublisher, never()).publishEvent(any());
         verify(employeeMapper, never()).toDto(any());
     }
 
@@ -289,7 +243,7 @@ class EmployeeServiceImplTest {
         verifyNoInteractions(
                 departmentRepository,
                 employeeMapper,
-                restTemplate
+                eventPublisher
         );
     }
 
