@@ -32,9 +32,18 @@ public class AuthServiceImpl implements AuthService {
     public void register(RegisterRequest request) {
         String username = request.getUsername();
 
-        log.info("Registering user: {}", username);
+        log.info(
+                "security_event=registration_attempt username={}",
+                username
+        );
 
         if (userRepository.existsByUsername(username)) {
+            log.warn(
+                    "security_event=registration_rejected "
+                            + "username={} reason=username_exists",
+                    username
+            );
+
             throw new UsernameAlreadyExistsException(username);
         }
 
@@ -48,26 +57,72 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             userRepository.save(user);
+
+            log.info(
+                    "security_event=registration_succeeded "
+                            + "username={} role={}",
+                    username,
+                    user.getRole()
+            );
         } catch (DataIntegrityViolationException exception) {
-            /*
-             * The pre-check improves the normal error path, while the
-             * database unique constraint protects concurrent requests.
-             */
+            log.warn(
+                    "security_event=registration_rejected "
+                            + "username={} "
+                            + "reason=concurrent_username_conflict",
+                    username
+            );
+
             throw new UsernameAlreadyExistsException(username);
         }
     }
 
     @Override
     public AuthResponse login(AuthRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
+        String username = request.getUsername();
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BadCredentialsException("Invalid username or password");
+        User user = userRepository
+                .findByUsername(username)
+                .orElseThrow(() -> {
+                    log.warn(
+                            "security_event=login_failed "
+                                    + "username={} "
+                                    + "reason=bad_credentials",
+                            username
+                    );
+
+                    return new BadCredentialsException(
+                            "Invalid username or password"
+                    );
+                });
+
+        if (!passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword()
+        )) {
+            log.warn(
+                    "security_event=login_failed "
+                            + "username={} "
+                            + "reason=bad_credentials",
+                    username
+            );
+
+            throw new BadCredentialsException(
+                    "Invalid username or password"
+            );
         }
 
-        String token = jwtUtil.generateToken(user.getUsername(), "ROLE_" + user.getRole().name());
-        log.info("User logged in: {}", request.getUsername());
+        String token = jwtUtil.generateToken(
+                user.getUsername(),
+                "ROLE_" + user.getRole().name()
+        );
+
+        log.info(
+                "security_event=login_succeeded "
+                        + "username={} role={}",
+                username,
+                user.getRole()
+        );
+
         return new AuthResponse(token);
     }
 }

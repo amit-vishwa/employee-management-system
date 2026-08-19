@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -49,9 +51,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-        } catch (Exception e) {
-            // Invalid/expired token — leave SecurityContext empty, request proceeds unauthenticated
-            logger.warn("Invalid JWT token: " + e.getMessage());
+        } catch (Exception exception) {
+            log.warn(
+                    "security_event=jwt_rejected "
+                            + "method={} path={} reason={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    exception.getClass().getSimpleName()
+            );
         }
 
         filterChain.doFilter(request, response);

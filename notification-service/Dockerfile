@@ -9,7 +9,9 @@ COPY employee-service/pom.xml employee-service/
 COPY auth-service/pom.xml auth-service/
 COPY notification-service/pom.xml notification-service/
 
-# This service has no source dependency on common.
+# notification-service depends on shared correlation infrastructure
+# from the common module.
+COPY common/src common/src
 COPY notification-service/src notification-service/src
 
 RUN mvn -pl notification-service -am clean package -DskipTests
