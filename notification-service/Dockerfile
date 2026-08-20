@@ -18,11 +18,18 @@ RUN mvn -pl notification-service -am clean package -DskipTests
 
 # ---- Runtime stage ----
 FROM eclipse-temurin:17-jre-alpine
+
+RUN addgroup -S -g 10001 ems \
+    && adduser -S -D -H -u 10001 -G ems ems
+
 WORKDIR /app
 
 COPY --from=build \
+    --chown=10001:10001 \
     /build/notification-service/target/notification-service-*.jar \
     app.jar
+
+USER 10001:10001
 
 EXPOSE 8083
 

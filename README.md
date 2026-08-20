@@ -1,23 +1,10 @@
-# Employee Management System
+# Employee Management System - Spring Boot 3.3
 
-[![CI](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml)
+[![CI](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml)
 
-A Spring Boot microservices learning project demonstrating employee and department management, JWT authentication, role-based authorization, Flyway database migrations, resilient service-to-service communication, correlation-based observability, automated testing, static analysis, and Docker-based local orchestration.
+A multi-module Spring Boot microservices project for employee and department management. It demonstrates JWT authentication, role-based authorization, database migrations, resilient service-to-service communication, automated quality gates, Docker Compose, and local Kubernetes deployment.
 
-## Services
-
-| Service | Port | Responsibility |
-|---|---:|---|
-| employee-service | 8081 | Employee and department management |
-| auth-service | 8082 | User registration, authentication, and JWT generation |
-| notification-service | 8083 | Processing employee-created notifications |
-
-The project uses separate MySQL databases:
-
-| Database | Host port | Used by |
-|---|---:|---|
-| `ems_db` | 3307 | employee-service |
-| `auth_db` | 3308 | auth-service |
+All required capabilities use free or open-source tooling. No paid service is required to build, test, or run the project locally.
 
 ## Technology Stack
 
@@ -31,79 +18,103 @@ The project uses separate MySQL databases:
 - H2 for automated tests
 - Flyway Community
 - Resilience4j Circuit Breaker
+- Springdoc OpenAPI and Swagger UI
 - Maven multi-module reactor
 - JUnit 5, Mockito, AssertJ, and MockMvc
 - JaCoCo
 - SpotBugs
 - Docker and Docker Compose
+- Kubernetes, Kind, and Kustomize
 - GitHub Actions
 - Dependabot
-- Springdoc OpenAPI and Swagger UI
 
-All required project capabilities use free or open-source tooling. No paid service is required to build, test, or run the project locally.
+## Architecture
 
-## Project Modules
+```text
+Client
+  |
+  +--> auth-service :8082
+  |      +--> registration and login
+  |      +--> JWT generation
+  |      +--> mysql-auth
+  |
+  +--> employee-service :8081
+         +--> employee and department management
+         +--> JWT validation and role authorization
+         +--> mysql-ems
+         +--> notification-service :8083
+```
+
+Notification delivery occurs after the employee database transaction commits. A notification failure does not roll back the employee record.
+
+## Project Structure
 
 ```text
 employee-management-system/
-├── common/
-│   ├── shared exception contracts
-│   ├── JWT utilities
-│   └── correlation-ID infrastructure
-├── auth-service/
-│   ├── registration and login
-│   ├── JWT generation
-│   └── authentication database
-├── employee-service/
-│   ├── employee management
-│   ├── department management
-│   ├── role-based authorization
-│   ├── employee self-service
-│   └── resilient notification client
-├── notification-service/
-│   └── employee-created notification processing
-├── .github/
-│   ├── workflows/ci.yml
-│   └── dependabot.yml
-├── docker-compose.yml
-├── .env.example
-├── pom.xml
-└── README.md
+|-- common/
+|   |-- shared exception contracts
+|   |-- JWT utilities
+|   `-- correlation-ID infrastructure
+|-- auth-service/
+|   |-- registration and login
+|   |-- JWT generation
+|   `-- authentication database
+|-- employee-service/
+|   |-- employee and department management
+|   |-- role-based authorization
+|   `-- resilient notification integration
+|-- notification-service/
+|   `-- simulated employee notification processing
+|-- k8s/
+|   |-- base/
+|   |   |-- Deployments and Services
+|   |   |-- MySQL StatefulSets and persistent storage
+|   |   |-- ConfigMaps and Secret template
+|   |   `-- Kustomize configuration
+|   `-- kind/
+|       `-- local cluster configuration
+|-- .github/workflows/ci.yml
+|-- docker-compose.yml
+|-- .env.example
+|-- pom.xml
+`-- README.md
 ```
 
 ## Prerequisites
 
-Install the following free tools:
+Install these free tools:
 
 - OpenJDK 17
 - Git
-- Docker Engine, an eligible Docker Desktop installation, or another compatible container runtime
-- OpenSSL for generating local secrets
+- Docker Engine, an eligible Docker Desktop installation, or another compatible Linux container runtime
+- OpenSSL
+- `kubectl` for Kubernetes operations
+- Kind for local Kubernetes deployment
 
 The Maven Wrapper is included, so a separate Maven installation is not required.
-
-Verify the toolchain:
 
 ```bash
 java -version
 ./mvnw --version
 docker version
 docker compose version
+kubectl version --client
+kind version
 git --version
 ```
 
 ## Build and Test
 
-Run the complete Maven reactor:
+Run the complete quality gate:
 
 ```bash
-./mvnw clean verify
+./mvnw --batch-mode --no-transfer-progress clean verify
 ```
 
 The Maven `verify` lifecycle performs:
 
 - Compilation of all modules
-- Execution of 57 automated tests
+- Execution of 60 automated tests
 - Packaging of executable Spring Boot JARs
 - JaCoCo coverage-report generation
 - SpotBugs static analysis
@@ -114,16 +125,14 @@ Current test distribution:
 | Module | Tests |
 |---|---:|
 | common | 4 |
-| employee-service | 37 |
+| employee-service | 40 |
 | auth-service | 13 |
 | notification-service | 3 |
-| **Total** | **57** |
+| **Total** | **60** |
 
-Most tests use isolated H2-backed configuration. Dedicated Flyway tests execute versioned migrations against H2 in MySQL compatibility mode and require Hibernate to validate the resulting schemas.
+Most tests use isolated H2-backed configuration. Dedicated Flyway tests execute migrations against H2 in MySQL compatibility mode. Docker and Kubernetes runtime verification remain the authoritative MySQL integration checks.
 
-Docker runtime verification remains the authoritative MySQL integration check. Maven tests do not require production credentials, paid infrastructure, or running Docker containers.
-
-Local quality reports are generated under each module:
+Quality reports are generated under each module:
 
 ```text
 <module>/target/site/jacoco/index.html
@@ -131,20 +140,11 @@ Local quality reports are generated under each module:
 <module>/target/spotbugsXml.xml
 ```
 
-JaCoCo currently provides an honest coverage baseline rather than enforcing an arbitrary global percentage.
+JaCoCo currently records an honest baseline rather than enforcing an arbitrary global threshold. The original employee-service baseline was 68% instruction coverage and 52% branch coverage, while the core service implementation reached 94% instruction coverage and 83% branch coverage.
 
-The initial employee-service baseline was:
+### Focused Maven tests
 
-- Instruction coverage: 68%
-- Branch coverage: 52%
-- Service implementation instruction coverage: 94%
-- Service implementation branch coverage: 83%
-
-This baseline shows strong focused coverage for the core business services while controller, security, mapper, strategy, and framework-wiring coverage still has room for improvement.
-
-## Running Focused Maven Tests
-
-When selecting a module that depends on another reactor module, include `-am`:
+When a selected module depends on another reactor module, include `-am`:
 
 ```bash
 ./mvnw \
@@ -153,7 +153,7 @@ When selecting a module that depends on another reactor module, include `-am`:
   test
 ```
 
-To run one employee-service test while also building required modules:
+For one test class:
 
 ```bash
 ./mvnw \
@@ -164,135 +164,71 @@ To run one employee-service test while also building required modules:
   test
 ```
 
-`-am` means “also make” required reactor dependencies, including `common`.
-
-Without `-am`, Maven may resolve an older `common` artifact from the local Maven repository.
+`-am` means “also make” required reactor dependencies such as `common`. Without it, Maven may resolve an older locally installed dependency.
 
 ## Continuous Integration
 
-GitHub Actions runs on:
+GitHub Actions runs on pushes to `master`, pull requests targeting `master`, and manual workflow dispatch.
 
-- Pushes to `master`
-- Pull requests targeting `master`
-- Manual workflow dispatch
+The ordered pipeline contains:
 
-The pipeline executes two ordered jobs.
+1. **Maven Verify**
+   - Sets up Eclipse Temurin Java 17
+   - Runs the complete Maven reactor
+   - Executes tests, JaCoCo, and SpotBugs
+   - Uploads coverage and SpotBugs reports for seven days
+2. **Docker Image Build**
+   - Runs only after Maven verification succeeds
+   - Creates a temporary CI environment file from `.env.example`
+   - Validates the Docker Compose model
+   - Builds all three application images
+   - Does not start containers or publish images
 
-### Maven Verify
-
-The first job:
-
-- Uses Eclipse Temurin Java 17
-- Runs the complete Maven reactor
-- Executes all automated tests
-- Generates JaCoCo reports
-- Runs the SpotBugs quality gate
-- Uploads `jacoco-reports`
-- Uploads `spotbugs-reports`
-- Retains report artifacts for seven days
-
-### Docker Image Build
-
-The second job:
-
-- Runs only after Maven verification succeeds
-- Creates a temporary CI environment file from `.env.example`
-- Validates the Docker Compose model
-- Builds auth-service
-- Builds employee-service
-- Builds notification-service
-- Does not start containers
-- Does not publish images to a registry
-
-The job dependency avoids spending Docker resources on code that has already failed compilation, tests, coverage generation, or static analysis.
-
-## Dependency Update Automation
-
-Dependabot checks weekly for:
-
-- Maven dependency and plugin updates
-- GitHub Actions updates
-
-Maven minor and patch updates are grouped to reduce pull-request noise. Major updates remain separate because they may require migration work.
-
-GitHub Actions updates are grouped under the same CI concern.
-
-Dependabot does not merge updates automatically. Every proposed update must be reviewed and pass the complete CI pipeline.
-
-No paid GitHub Advanced Security capability is required.
+Dependabot checks Maven and GitHub Actions dependencies weekly. Minor and patch Maven updates are grouped; major updates remain separate. Updates are never merged automatically and must pass CI.
 
 ## Secure Local Configuration
 
 Production credentials and JWT signing material are not stored in Git.
 
-Copy the safe template:
-
 ```bash
 cp .env.example .env
-```
-
-Generate separate random values for database passwords and the JWT signing secret:
-
-```bash
 openssl rand -hex 32
 ```
 
-Replace every `CHANGE_ME` value in `.env`.
+Replace every `CHANGE_ME` value in `.env`. Generate different values for database credentials and the JWT signing secret.
 
-Never commit `.env`. It is intentionally excluded through `.gitignore`.
-
-Confirm:
+Never commit `.env`:
 
 ```bash
 git check-ignore -v .env
-```
-
-Validate the Compose configuration without printing resolved credentials:
-
-```bash
 docker compose config --quiet
 ```
 
-## Docker Runtime Operations
+Do not use `docker compose config` without `--quiet` when resolved configuration may contain sensitive values.
+
+## Docker Compose Deployment
 
 Build and start the complete stack:
 
 ```bash
 docker compose up -d --build --wait --wait-timeout 300
-```
-
-Use `--build` after changing:
-
-- Java application source
-- Maven dependencies
-- Dockerfiles
-- Shared common-module source
-- Packaged configuration
-
-`./mvnw clean verify` updates local `target` artifacts but does not modify existing Docker images.
-
-Check status:
-
-```bash
 docker compose ps
 ```
 
-The expected stack contains:
+Expected services:
 
-- `mysql-ems`
 - `mysql-auth`
+- `mysql-ems`
 - `auth-service`
 - `employee-service`
 - `notification-service`
 
-All containers should report `healthy`.
-
-Verify public health endpoints:
+Verify health:
 
 ```bash
-curl --fail http://localhost:8081/actuator/health
-curl --fail http://localhost:8082/actuator/health
-curl --fail http://localhost:8083/actuator/health
+curl --fail http://localhost:8081/actuator/health/readiness
+curl --fail http://localhost:8082/actuator/health/readiness
+curl --fail http://localhost:8083/actuator/health/readiness
 ```
 
 Expected:
@@ -301,17 +237,191 @@ Expected:
 {"status":"UP"}
 ```
 
-Stop containers while preserving database data:
+Stop containers while preserving database volumes:
 
 ```bash
 docker compose down
 ```
 
-Delete containers and local database volumes only when the data is disposable:
+Delete disposable local data only when intentionally resetting the environment:
 
 ```bash
 docker compose down --volumes
 ```
+
+The MySQL image applies its initialization credentials only to an empty data directory. Changing `.env` does not rotate credentials inside an existing volume.
+
+## Local Kubernetes Deployment
+
+The complete stack can run on a free local Kubernetes cluster using Kind. No cloud platform, paid ingress product, or external image registry is required.
+
+### 1. Create the Kind cluster
+
+```bash
+kind create cluster \
+  --name ems-local \
+  --config k8s/kind/cluster-config.yaml
+
+kubectl config current-context
+kubectl get nodes
+```
+
+Expected context:
+
+```text
+kind-ems-local
+```
+
+### 2. Build and load application images
+
+```bash
+docker compose build \
+  auth-service \
+  employee-service \
+  notification-service
+```
+
+Load the images directly into Kind:
+
+```bash
+kind load docker-image \
+  employee-management-system-auth-service:latest \
+  employee-management-system-employee-service:latest \
+  employee-management-system-notification-service:latest \
+  --name ems-local
+```
+
+Verify images on the Kind node:
+
+```bash
+docker exec ems-local-control-plane \
+  crictl images | \
+  grep employee-management-system
+```
+
+### 3. Create local Kubernetes secrets
+
+```bash
+cp k8s/base/secrets.example.yaml \
+  k8s/base/secrets.local.yaml
+```
+
+Replace every `CHANGE_ME` value with a locally generated value:
+
+```bash
+openssl rand -hex 32
+```
+
+The local Secret manifest is ignored by Git:
+
+```bash
+git check-ignore -v k8s/base/secrets.local.yaml
+```
+
+Apply the namespace and local Secrets:
+
+```bash
+kubectl apply -f k8s/base/namespace.yaml
+kubectl apply -f k8s/base/secrets.local.yaml
+```
+
+`secrets.example.yaml` is safe to commit because it contains placeholders. `secrets.local.yaml` must never be committed.
+
+### 4. Deploy with Kustomize
+
+Validate against the Kubernetes API:
+
+```bash
+kubectl apply --dry-run=server -k k8s/base
+kubectl kustomize k8s/base > /dev/null
+```
+
+Deploy:
+
+```bash
+kubectl apply -k k8s/base
+```
+
+Wait for application rollouts:
+
+```bash
+kubectl rollout status deployment/auth-service -n ems --timeout=700s
+kubectl rollout status deployment/employee-service -n ems --timeout=700s
+kubectl rollout status deployment/notification-service -n ems --timeout=700s
+```
+
+Wait for MySQL StatefulSets:
+
+```bash
+kubectl rollout status statefulset/mysql-auth -n ems --timeout=700s
+kubectl rollout status statefulset/mysql-ems -n ems --timeout=700s
+```
+
+Inspect the runtime:
+
+```bash
+kubectl get deployments,statefulsets,pods,services,pvc -n ems
+kubectl get endpointslices -n ems
+```
+
+Expected state:
+
+- Three application Deployments are Ready.
+- Two MySQL StatefulSets are Ready.
+- All Pods are `Running`.
+- Both MySQL persistent volume claims are `Bound`.
+- Services have EndpointSlice addresses.
+- Application containers run as a non-root user.
+- Resource requests and limits are configured.
+- Startup, liveness, and readiness probes are healthy.
+
+### 5. Local access with port-forwarding
+
+The Services use `ClusterIP`, so expose each service temporarily in a separate terminal:
+
+```bash
+kubectl port-forward -n ems service/employee-service 8081:8081
+kubectl port-forward -n ems service/auth-service 8082:8082
+kubectl port-forward -n ems service/notification-service 8083:8083
+```
+
+Verify readiness:
+
+```bash
+curl --fail http://localhost:8081/actuator/health/readiness
+curl --fail http://localhost:8082/actuator/health/readiness
+curl --fail http://localhost:8083/actuator/health/readiness
+```
+
+Stop a port-forward with `Ctrl+C`. This closes only the local tunnel and does not stop the Pod.
+
+### 6. Persistence verification
+
+MySQL uses StatefulSets and persistent volume claims. Deleting a database Pod must not delete its schema history or data:
+
+```bash
+kubectl get pvc -n ems
+kubectl delete pod mysql-auth-0 -n ems
+kubectl rollout status statefulset/mysql-auth -n ems --timeout=700s
+```
+
+The recreated Pod should attach the same PVC. Flyway history should remain available:
+
+```bash
+kubectl exec -n ems mysql-auth-0 -- sh -c \
+  'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
+  -e "SELECT installed_rank, version, description, success FROM flyway_schema_history;"'
+```
+
+The same persistence test applies to `mysql-ems-0`.
+
+### Delete the local cluster
+
+```bash
+kind delete cluster --name ems-local
+```
+
+This deletes the cluster and its local persistent data. Run it only when that data is disposable.
 
 ## Configuration Model
 
@@ -319,113 +429,42 @@ docker compose down --volumes
 |---|---|
 | Automated tests | Test-profile YAML and H2 |
 | Local Docker | Ignored `.env` |
+| Local Kubernetes | ConfigMaps and ignored `secrets.local.yaml` |
 | Direct IDE execution | IDE environment variables |
-| Deployment | Runtime environment variables or platform secrets |
+| Production deployment | Platform-managed runtime configuration and secrets |
 
-Required configuration fails fast when missing. The application does not contain fallback production passwords or a fallback JWT signing key.
+Required configuration fails fast when missing. The application contains no fallback production password or JWT signing key.
 
-## Running Services Directly
-
-Docker Compose maps service-specific credentials to the generic Spring properties `DB_USERNAME` and `DB_PASSWORD`.
-
-When starting a service directly from an IDE, configure the environment explicitly.
-
-For auth-service:
-
-```text
-DB_HOST=localhost
-DB_PORT=3308
-DB_USERNAME=<AUTH_DB_USERNAME>
-DB_PASSWORD=<AUTH_DB_PASSWORD>
-JWT_SECRET=<local JWT secret>
-```
-
-For employee-service:
-
-```text
-DB_HOST=localhost
-DB_PORT=3307
-DB_USERNAME=<EMS_DB_USERNAME>
-DB_PASSWORD=<EMS_DB_PASSWORD>
-JWT_SECRET=<same secret used by auth-service>
-NOTIFICATION_HOST=localhost
-NOTIFICATION_CONNECT_TIMEOUT=2s
-NOTIFICATION_READ_TIMEOUT=3s
-```
-
-Auth-service and employee-service must use the same JWT signing secret:
-
-```text
-auth-service signs JWTs
-employee-service verifies JWTs
-```
+Auth-service and employee-service must use the same JWT signing secret: auth-service signs tokens and employee-service verifies them.
 
 ## Database Schema Management
 
-Flyway Community manages the authentication and employee schemas.
-
-Migration locations:
+Flyway Community manages both schemas:
 
 ```text
 auth-service/src/main/resources/db/migration/
 employee-service/src/main/resources/db/migration/
 ```
 
-Current baselines:
+Current migrations:
 
 ```text
-auth-service:
-V1__create_users_table.sql
-
-employee-service:
-V1__create_employee_schema.sql
+auth-service:     V1__create_users_table.sql
+employee-service: V1__create_employee_schema.sql
 ```
 
-Flyway executes pending migrations before Hibernate initializes.
+Flyway executes pending migrations before Hibernate initializes. Hibernate uses `ddl-auto: validate`, so it verifies entity-to-schema compatibility without creating or silently modifying production tables.
 
-Hibernate uses:
-
-```yaml
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: validate
-```
-
-Hibernate validates entity-to-schema compatibility but does not create or silently modify production tables.
-
-Flyway records migration history in:
-
-```text
-flyway_schema_history
-```
-
-Inspect auth-service migration history:
-
-```bash
-docker compose exec mysql-auth sh -c \
-  'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
-  -e "SELECT installed_rank, version, description, success FROM flyway_schema_history;"'
-```
-
-Inspect employee-service migration history:
-
-```bash
-docker compose exec mysql-ems sh -c \
-  'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
-  -e "SELECT installed_rank, version, description, success FROM flyway_schema_history;"'
-```
-
-An applied migration must not be edited. Future schema changes require a new version:
+Flyway records applied migrations in `flyway_schema_history`. Never edit an applied migration; add a new version instead:
 
 ```text
 V2__add_employee_status.sql
 V3__create_audit_table.sql
 ```
 
-Editing an applied migration changes its checksum and causes Flyway validation to fail.
+Editing an applied migration changes its checksum and causes validation to fail.
 
-## Transaction Boundaries and OSIV
+## Transaction Boundaries
 
 Open Session in View is disabled:
 
@@ -435,64 +474,31 @@ spring:
     open-in-view: false
 ```
 
-Database access and entity-to-DTO mapping must complete inside the service transaction.
-
-Service classes use:
-
-- Class-level `@Transactional(readOnly = true)` for queries
-- Method-level `@Transactional` for state-changing operations
-
-This prevents controllers and JSON serialization from triggering unexpected lazy database queries.
+Service classes use class-level `@Transactional(readOnly = true)` for queries and method-level `@Transactional` for state changes. Database access and entity-to-DTO mapping therefore complete inside explicit service transactions.
 
 ## Notification Resilience
 
-Employee creation is the primary transaction. Notification delivery is secondary.
-
 ```text
 Persist employee
-    ↓
-Commit database transaction
-    ↓
+    |
+Commit transaction
+    |
 Publish EmployeeCreatedEvent
-    ↓
+    |
 AFTER_COMMIT listener
-    ↓
+    |
 NotificationClient
-    ↓
-Circuit breaker
-    ↓
+    |
+Resilience4j circuit breaker
+    |
 notification-service
 ```
 
-Connection and read waits are bounded:
+The notification client uses bounded connection and read timeouts. The circuit breaker records failures, opens after the configured threshold, rejects calls quickly while open, and permits controlled trial calls in the half-open state.
 
-```yaml
-notification:
-  client:
-    connect-timeout: ${NOTIFICATION_CONNECT_TIMEOUT:2s}
-    read-timeout: ${NOTIFICATION_READ_TIMEOUT:3s}
-```
+Automatic retry is intentionally absent. A read timeout has an ambiguous outcome: notification-service may complete after employee-service stops waiting, so retrying could duplicate a real email.
 
-The Resilience4j circuit breaker:
-
-- Uses a count-based sliding window
-- Records notification failures
-- Opens after the configured failure threshold
-- Rejects calls quickly while open
-- Permits a trial call in the half-open state
-- Prevents notification failure from rolling back employee data
-
-Automatic retry is intentionally absent.
-
-A read timeout is an ambiguous distributed-system outcome: notification-service may finish processing after employee-service has stopped waiting. Retrying that request could duplicate a real email.
-
-The current notification implementation logs intended email delivery. It does not provide:
-
-- Real email delivery
-- Durable messaging
-- Delivery guarantees
-- Idempotency
-- Deduplication
+The current notification implementation logs intended delivery. It does not provide real email, durable messaging, delivery guarantees, idempotency, or deduplication.
 
 ## Correlation IDs
 
@@ -502,15 +508,13 @@ Every HTTP service supports:
 X-Correlation-ID
 ```
 
-If a request supplies a valid identifier containing 1–64 letters, numbers, dots, underscores, or hyphens, the service preserves it.
-
-Invalid or missing identifiers are replaced by a generated UUID.
+A valid client identifier contains 1–64 letters, numbers, dots, underscores, or hyphens. Missing or invalid identifiers are replaced by a generated UUID.
 
 The correlation ID is:
 
 - Returned in the response header
 - Stored temporarily in SLF4J MDC
-- Included in the console log pattern
+- Included in application logs
 - Propagated from employee-service to notification-service
 - Removed after request completion to protect reused servlet threads
 
@@ -522,57 +526,36 @@ curl -i \
   http://localhost:8081/actuator/health
 ```
 
-Expected response header:
+## Authentication and Authorization
+
+Public registration always creates an `EMPLOYEE` account. Client-supplied role fields are not accepted. This prevents public privilege escalation.
+
+| Role | Employee permissions | Department permissions |
+|---|---|---|
+| ADMIN | Full management | Full management |
+| HR | Full management | Full management |
+| EMPLOYEE | Read its linked record through `/employees/me` | None |
+
+The self-service link is:
 
 ```text
-X-Correlation-ID: manual-health-check-001
+employee.authUsername = JWT subject username
 ```
 
-Cross-service verification:
+Authentication status contract:
 
-```bash
-docker compose logs employee-service |
-  grep "manual-correlation-id"
+| Scenario | Status |
+|---|---:|
+| Missing JWT | 401 |
+| Malformed, expired, or invalid JWT | 401 |
+| Valid JWT with insufficient role | 403 |
+| Valid ADMIN or HR request | Endpoint-specific success status |
 
-docker compose logs notification-service |
-  grep "manual-correlation-id"
-```
+`401` means no valid authenticated identity exists. `403` means authentication succeeded but the identity lacks the required authority.
 
-## Security-Relevant Logging
-
-Security logs use searchable key-value fields:
-
-```text
-security_event=registration_attempt username=employee_demo
-security_event=registration_succeeded username=employee_demo role=EMPLOYEE
-security_event=registration_rejected username=employee_demo reason=username_exists
-security_event=login_succeeded username=admin_demo role=ADMIN
-security_event=login_failed username=admin_demo reason=bad_credentials
-security_event=jwt_rejected method=GET path=/api/v1/employees reason=MalformedJwtException
-security_event=access_denied username=employee_demo method=GET path=/api/v1/employees
-```
-
-Logs must never contain:
-
-- Passwords
-- Password hashes
-- JWT values
-- JWT signing secrets
-- Database passwords
-- Database root credentials
-
-Audit local logs:
-
-```bash
-docker compose logs auth-service employee-service |
-  grep -E "Bearer eyJ|JWT_SECRET|DB_PASSWORD"
-```
-
-Expected: no output.
+There is intentionally no public ADMIN-registration flow. A production system should provision privileged accounts through a controlled bootstrap or protected administration process. Direct database role changes are acceptable only for disposable local testing.
 
 ## API Documentation
-
-Each HTTP service provides an independent OpenAPI specification and Swagger UI.
 
 | Service | OpenAPI JSON | Swagger UI |
 |---|---|---|
@@ -580,403 +563,169 @@ Each HTTP service provides an independent OpenAPI specification and Swagger UI.
 | auth-service | http://localhost:8082/v3/api-docs | http://localhost:8082/swagger-ui.html |
 | notification-service | http://localhost:8083/v3/api-docs | http://localhost:8083/swagger-ui.html |
 
-### Using Swagger UI
+For protected employee-service operations:
 
-1. Register and log in through auth-service Swagger UI.
-2. Copy the JWT value without the `Bearer` prefix.
+1. Register and log in through auth-service.
+2. Copy the returned JWT without the `Bearer` prefix.
 3. Open employee-service Swagger UI.
 4. Select **Authorize**.
 5. Paste only the JWT.
-6. Swagger UI adds `Bearer` automatically.
-7. Execute the protected operation.
-
-Public registration always creates an `EMPLOYEE` account.
-
-An EMPLOYEE token can access only:
-
-```text
-GET /api/v1/employees/me
-```
-
-The employee record must be linked through:
-
-```text
-employee.authUsername = JWT subject username
-```
-
-Employee and department management operations require ADMIN or HR.
-
-## Authorization Model
-
-| Role | Employee permissions | Department permissions |
-|---|---|---|
-| ADMIN | Full management | Full management |
-| HR | Full management | Full management |
-| EMPLOYEE | Read the explicitly linked record using `/employees/me` | None |
-
-An EMPLOYEE cannot:
-
-- List all employees
-- Read another employee by numeric ID
-- Create employees
-- Update employees
-- Delete employees
-- Access department endpoints
-
-Existing employee records may have no authentication username. This allows employee records and authentication accounts to remain separate concepts.
-
-## Authentication Status Contract
-
-| Scenario | Status |
-|---|---:|
-| Missing JWT | 401 |
-| Malformed JWT | 401 |
-| Expired or invalid JWT | 401 |
-| Valid JWT with insufficient role | 403 |
-| Valid ADMIN or HR request | Endpoint-specific success status |
-
-`401` means no valid authenticated identity exists.
-
-`403` means authentication succeeded, but the identity does not have the required authority.
+6. Execute an operation permitted for that role.
 
 ## API Error Contract
 
-Handled authentication and employee-domain errors use this structure:
+Handled errors use a consistent structure:
 
 ```json
 {
-  "timestamp": "2026-08-19T12:00:00",
+  "timestamp": "2026-08-20T12:00:00",
   "status": 409,
   "message": "Employee email already exists: employee@example.com",
   "path": "/api/v1/employees"
 }
 ```
 
-Common status codes:
-
 | Status | Meaning |
 |---:|---|
-| 400 | Request validation failed or a search criterion is unsupported |
-| 401 | Authentication is missing, malformed, expired, or invalid |
-| 403 | Authentication is valid, but the role is not permitted |
-| 404 | The requested or linked resource was not found |
-| 409 | A username, employee email, or authentication-ownership link already exists |
+| 400 | Validation failed or a criterion is unsupported |
+| 401 | Authentication is missing or invalid |
+| 403 | Authentication is valid but the role is not permitted |
+| 404 | A requested or linked resource was not found |
+| 409 | A username, email, or ownership link already exists |
 | 500 | An unexpected internal error occurred |
 
-Unexpected exception details are logged internally but are not returned to API clients.
+Database constraints remain the final protection against concurrent uniqueness conflicts.
 
-Database uniqueness constraints remain the final protection against concurrent requests. Application-level checks provide clearer errors for normal conflicts.
+## Security-Relevant Logging
 
-## Logs and Troubleshooting
-
-Inspect all containers:
-
-```bash
-docker compose ps --all
-```
-
-View all service logs:
-
-```bash
-docker compose logs --tail=200
-```
-
-View one service:
-
-```bash
-docker compose logs --tail=200 employee-service
-docker compose logs --tail=200 auth-service
-docker compose logs --tail=200 notification-service
-```
-
-Follow logs:
-
-```bash
-docker compose logs --follow employee-service
-```
-
-### Docker daemon is unavailable
-
-An error containing:
+Security logs use searchable structured fields:
 
 ```text
-failed to connect to the docker API
+security_event=registration_succeeded username=employee_demo role=EMPLOYEE
+security_event=login_succeeded username=admin_demo role=ADMIN
+security_event=login_failed username=admin_demo reason=bad_credentials
+security_event=jwt_rejected method=GET path=/api/v1/employees reason=MalformedJwtException
+security_event=access_denied username=employee_demo method=GET path=/api/v1/employees
 ```
 
-means the Docker engine is unavailable.
+Logs must never contain passwords, password hashes, JWT values, signing secrets, or database credentials.
 
-Start Docker Desktop or the selected compatible engine, wait until it is ready, and rerun the command.
+## Troubleshooting
 
-### Container temporarily becomes unhealthy
+### Docker or BuildKit becomes unavailable
 
-Some development computers require additional Spring Boot startup time.
+Errors such as `failed to connect to the docker API`, unexpected EOF, or a BuildKit panic indicate an engine failure rather than an application compilation failure. Restart the Docker engine, confirm `docker info`, and rebuild the affected image.
 
-Inspect:
+### Container reports `no main manifest attribute`
+
+The JAR was packaged as a regular Maven JAR rather than an executable Spring Boot JAR. A valid executable JAR contains `BOOT-INF/` and runs with `java -jar app.jar`. The parent build binds Spring Boot's `repackage` goal for application modules.
+
+### MySQL rejects changed credentials
+
+MySQL initialization environment variables apply only to an empty data directory. Changing `.env` or Kubernetes Secrets does not alter credentials already stored in an existing volume. Rotate important credentials through MySQL administration; delete volumes only when their data is disposable.
+
+### Kubernetes Pod is unhealthy
 
 ```bash
-docker compose ps --all
-docker compose logs --tail=300 <service-name>
+kubectl get pods -n ems
+kubectl describe pod <pod-name> -n ems
+kubectl logs <pod-name> -n ems --tail=300
 ```
 
-Application health checks use a startup grace period so slow initialization is not treated as immediate failure.
+Inspect the application exception before changing probe thresholds. A longer timeout should not hide a genuine startup failure.
 
-Do not increase health-check timeouts before inspecting application logs. A real startup exception should not be hidden by a longer wait.
+### A Kubernetes image change is not visible
 
-### Docker reused an old application image
-
-A Maven build does not update existing Docker images.
-
-After changing application code, run:
+Kind does not automatically receive a rebuilt Docker image. Rebuild, load, and restart the relevant Deployment:
 
 ```bash
-docker compose up -d --build --wait --wait-timeout 300
+docker compose build employee-service
+kind load docker-image employee-management-system-employee-service:latest --name ems-local
+kubectl rollout restart deployment/employee-service -n ems
+kubectl rollout status deployment/employee-service -n ems --timeout=700s
 ```
 
-### Maven reports missing child modules during image build
+### Actuator probes return 401
 
-Every service Dockerfile copies the root POM and all module POMs before Maven constructs the reactor.
+Kubernetes startup, liveness, and readiness endpoints must be explicitly permitted by Spring Security. Business endpoints must remain protected. Verify both behaviors:
 
-Source is copied only for modules required by that image.
-
-A service depending on `common` must include:
-
-```dockerfile
-COPY common/pom.xml common/
-COPY common/src common/src
+```bash
+curl --fail http://localhost:8081/actuator/health/readiness
+curl -i http://localhost:8081/api/v1/employees
 ```
 
-Maven `-am` selects dependencies but cannot compile source that was never copied into the Docker build filesystem.
+Expected: health returns `200`; the protected endpoint without a JWT returns `401`.
 
-### Flyway reports no migrations
+### Flyway finds no migrations
 
-Flyway expects nested directories:
-
-```text
-db/migration/
-```
-
-This differs from one directory named:
-
-```text
-db.migration/
-```
-
-Verify migration packaging:
+Flyway expects nested directories named `db/migration/`, not one directory named `db.migration`. Verify the executable JAR:
 
 ```bash
 jar tf employee-service/target/employee-service-1.0.0.jar |
   grep "db/migration"
 ```
 
-Expected:
+### A focused test cannot find a common class
 
-```text
-BOOT-INF/classes/db/migration/V1__create_employee_schema.sql
-```
-
-### Hibernate reports a missing table
-
-If Hibernate uses `ddl-auto: validate` and Flyway found zero migrations, startup fails with a missing-table error.
-
-Inspect earlier logs for:
-
-```text
-No migrations found
-```
-
-Then verify the migration directory and executable JAR contents.
-
-Do not enable `baseline-on-migrate` merely to hide an incorrectly packaged migration.
-
-### Existing-volume credentials fail
-
-The MySQL image applies:
-
-```text
-MYSQL_DATABASE
-MYSQL_USER
-MYSQL_PASSWORD
-MYSQL_ROOT_PASSWORD
-```
-
-only while initializing an empty data directory.
-
-Changing `.env` does not update credentials stored in an existing volume.
-
-For disposable local data:
-
-```bash
-docker compose down --volumes
-docker compose up -d --build --wait --wait-timeout 300
-```
-
-For important data, rotate credentials through MySQL administration instead of deleting the volume.
-
-### Container reports `no main manifest attribute`
-
-The service was packaged as a regular Maven JAR rather than an executable Spring Boot JAR.
-
-A valid executable JAR contains:
-
-```text
-BOOT-INF/
-```
-
-and runs with:
-
-```bash
-java -jar app.jar
-```
-
-The parent Maven configuration binds Spring Boot’s `repackage` goal for service modules.
-
-### SpotBugs fails the build
-
-Do not immediately suppress the finding or reduce the threshold.
-
-Determine whether it represents:
-
-- A correctness defect
-- A security risk
-- A portability issue
-- Generated-code noise
-- A justified false positive
-
-For example, JWT signing previously used `String.getBytes()` without an explicit encoding. It was corrected to use UTF-8 for deterministic signing across Windows and Linux.
-
-### Coverage reports are missing
-
-JaCoCo reports are generated during `verify`:
-
-```bash
-./mvnw clean verify
-```
-
-Running only `test` may not execute every reporting phase.
-
-The root project is a POM-only aggregator and does not produce a meaningful code-coverage report.
-
-### A focused module test cannot find a common class
-
-Use `-am`:
-
-```bash
-./mvnw \
-  -pl employee-service \
-  -am \
-  -Dtest=YourTestClass \
-  -Dsurefire.failIfNoSpecifiedTests=false \
-  test
-```
-
-Without `-am`, Maven may use an older locally installed `common` artifact.
+Include `-am` and, when selecting a single test, set `-Dsurefire.failIfNoSpecifiedTests=false` so dependency modules without that test name do not fail selection.
 
 ### Git reports LF-to-CRLF warnings
 
-Messages such as:
-
-```text
-LF will be replaced by CRLF the next time Git touches it
-```
-
-are line-ending conversion notices, not compilation failures.
-
-Use:
-
-```bash
-git diff --check
-```
-
-Actual whitespace errors are reported separately.
-
-## Resetting Local Data
-
-Delete containers and both database volumes:
-
-```bash
-docker compose down --volumes
-```
-
-This permanently removes local:
-
-- Authentication users
-- Employees
-- Departments
-- Flyway schema history
-- MySQL data
-
-Use this only when the data is disposable or backed up.
-
-The next startup recreates both databases and applies Flyway migrations:
-
-```bash
-docker compose up -d --build --wait --wait-timeout 300
-```
-
-Never use volume deletion as the first response to an unexplained startup failure. Inspect status and logs first.
+These are line-ending conversion notices, not compilation failures. Use `git diff --check`; actual whitespace errors are reported separately.
 
 ## Important Limitations
 
 - Public registration always creates an EMPLOYEE account.
-- No production administrative account-provisioning API exists yet.
-- Local smoke tests may promote a disposable user directly in `auth_db`.
-- Notification-service logs intended email delivery but does not send real email.
-- Notification-service is intended for internal use but currently has no authentication or network-level restriction.
+- No production privileged-account provisioning API exists yet.
+- Notification-service logs intended email delivery but does not send email.
+- Notification-service has no durable message broker or delivery guarantees.
+- Notification-service is intended for internal use but has no NetworkPolicy yet.
 - Employee-to-auth ownership is linked by username rather than a cross-database foreign key.
-- Flyway tests use H2 in MySQL compatibility mode; final database verification still uses Dockerized MySQL.
-- Notification delivery is synchronous after commit and is not backed by a durable queue.
-- A read timeout has an ambiguous result because the remote service may finish after the caller stops waiting.
-- Notification delivery has no idempotency or deduplication, so automatic retry is disabled.
-- Docker images are verified in CI but are not published to a registry.
+- Flyway tests use H2 in MySQL compatibility mode; MySQL runtime verification is still required.
+- Notification delivery is synchronous after commit and has no idempotency or deduplication.
+- Docker images are built in CI but are not published to a registry.
+- The Kubernetes configuration is designed for local Kind learning, not production deployment.
+- TLS, ingress, autoscaling, centralized logging, metrics dashboards, backups, and disaster recovery are not yet implemented.
 
 ## Security Rules
 
-- Never commit `.env`.
-- Never place real credentials in `.env.example`.
-- Never commit or share JWT tokens.
-- Never log passwords, password hashes, tokens, or secrets.
+- Never commit `.env` or `k8s/base/secrets.local.yaml`.
+- Never place real credentials in example files.
+- Never commit, print, or share JWT tokens.
+- Never log passwords, hashes, tokens, signing secrets, or database credentials.
 - Use different root and application database passwords.
-- Connect through dedicated application users rather than MySQL root.
-- Keep the JWT signing secret identical across token-producing and token-validating services.
-- Rotate credentials immediately if they are printed, shared, or committed.
-- Use explicit UTF-8 conversion for JWT signing-key bytes.
-- Treat every client-supplied correlation ID as untrusted input.
-- Review Dependabot pull requests and require CI success before merging.
+- Connect through dedicated application users instead of MySQL root.
+- Keep the JWT signing secret identical between auth-service and employee-service.
+- Run application containers as a non-root user.
+- Treat client-supplied correlation IDs as untrusted input.
+- Review dependency updates and require CI success before merging.
 
 ## Final Verification Checklist
 
 Before committing a milestone:
 
 ```bash
-./mvnw clean verify
+./mvnw --batch-mode --no-transfer-progress clean verify
 docker compose config --quiet
+kubectl kustomize k8s/base > /dev/null
+kubectl apply --dry-run=server -k k8s/base
 git diff --check
+git status --short
+```
+
+For Docker runtime verification:
+
+```bash
 docker compose up -d --build --wait --wait-timeout 300
 docker compose ps
-```
-
-Verify health:
-
-```bash
-curl --fail http://localhost:8081/actuator/health
-curl --fail http://localhost:8082/actuator/health
-curl --fail http://localhost:8083/actuator/health
-```
-
-Verify Flyway:
-
-```bash
-docker compose exec mysql-auth sh -c \
-  'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
-  -e "SELECT version, description, success FROM flyway_schema_history;"'
-
-docker compose exec mysql-ems sh -c \
-  'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
-  -e "SELECT version, description, success FROM flyway_schema_history;"'
-```
-
-Stop the stack while preserving data:
-
-```bash
 docker compose down
 ```
+
+For Kubernetes runtime verification:
+
+```bash
+kubectl get deployments,statefulsets,pods,services,pvc -n ems
+kubectl get endpointslices -n ems
+```
+
+Do not commit until tests, static analysis, configuration validation, runtime health, and the staged diff have all been reviewed.

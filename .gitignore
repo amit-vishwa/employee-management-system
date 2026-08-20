@@ -51,3 +51,6 @@ desktop.ini
 application-local.yml
 application-local.yaml
 application-local.properties
+
+# Local Kubernetes credentials
+k8s/**/secrets.local.yaml

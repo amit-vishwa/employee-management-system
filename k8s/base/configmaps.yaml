@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: ems
+  labels:
+    app.kubernetes.io/name: auth-service
+    app.kubernetes.io/component: configuration
+    app.kubernetes.io/part-of: employee-management-system
+data:
+  DB_HOST: mysql-auth
+  DB_PORT: "3306"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: employee-service-config
+  namespace: ems
+  labels:
+    app.kubernetes.io/name: employee-service
+    app.kubernetes.io/component: configuration
+    app.kubernetes.io/part-of: employee-management-system
+data:
+  DB_HOST: mysql-ems
+  DB_PORT: "3306"
+  NOTIFICATION_HOST: notification-service
+  NOTIFICATION_CONNECT_TIMEOUT: 2s
+  NOTIFICATION_READ_TIMEOUT: 3s
