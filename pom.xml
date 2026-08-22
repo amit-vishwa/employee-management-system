@@ -16,8 +16,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.3.4</spring-boot.version>
         <springdoc.version>3.1.0</springdoc.version>
-        <lombok.version>1.18.34</lombok.version>
-        <jjwt.version>0.12.6</jjwt.version>
+        <lombok.version>1.18.46</lombok.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <jacoco.version>0.8.15</jacoco.version>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
