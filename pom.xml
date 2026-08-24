@@ -20,7 +20,7 @@
         <jjwt.version>0.13.0</jjwt.version>
         <jacoco.version>0.8.15</jacoco.version>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
-        <spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.10.4.0</spotbugs-maven-plugin.version>
         <resilience4j.version>2.4.0</resilience4j.version>
     </properties>
 
