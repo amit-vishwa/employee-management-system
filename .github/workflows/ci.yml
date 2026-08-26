@@ -68,6 +68,22 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Scan SBOM for vulnerabilities
+        run: |
+          mkdir -p "${HOME}/.cache/trivy"
+
+          docker run --rm \
+            -v "${PWD}:/workspace:ro" \
+            -v "${HOME}/.cache/trivy:/root/.cache/trivy" \
+            aquasec/trivy@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e \
+            sbom \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            --no-progress \
+            /workspace/target/bom.json
+
   kubernetes-validate:
     name: Kubernetes Manifest Validation
     runs-on: ubuntu-latest
