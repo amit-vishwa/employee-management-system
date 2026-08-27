@@ -168,7 +168,7 @@ For one test class:
 
 ## Continuous Integration
 
-GitHub Actions runs on pushes to `master`, pull requests targeting `master`, and manual workflow dispatch.
+GitHub Actions runs on pushes to `main`, pull requests targeting `main`, and manual workflow dispatch.
 
 The ordered pipeline contains:
 
