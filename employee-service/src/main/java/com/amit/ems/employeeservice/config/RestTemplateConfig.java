@@ -16,8 +16,8 @@ public class RestTemplateConfig {
             NotificationClientProperties properties
     ) {
         return builder
-                .setConnectTimeout(properties.connectTimeout())
-                .setReadTimeout(properties.readTimeout())
+                .connectTimeout(properties.connectTimeout())
+                .readTimeout(properties.readTimeout())
                 .build();
     }
 }
