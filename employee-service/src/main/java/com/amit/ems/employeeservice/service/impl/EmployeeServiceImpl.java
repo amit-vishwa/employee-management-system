@@ -21,6 +21,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.amit.ems.common.logging.LogSanitizer.sanitize;
+
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +41,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeDto createEmployee(EmployeeDto dto) {
-        log.info("Creating employee with email: {}", dto.getEmail());
+        log.info(
+                "Creating employee with email: {}",
+                sanitize(dto.getEmail())
+        );
 
         ensureEmailAvailableForCreate(dto.getEmail());
         ensureOwnershipAvailableForCreate(dto.getAuthUsername());
@@ -54,7 +59,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         } catch (DataIntegrityViolationException exception) {
             log.warn(
                     "Employee email conflict during create: {}",
-                    dto.getEmail()
+                    sanitize(dto.getEmail())
             );
             throw new EmployeeEmailAlreadyExistsException(dto.getEmail());
         }
@@ -114,7 +119,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         } catch (DataIntegrityViolationException exception) {
             log.warn(
                     "Employee email conflict during update: {}",
-                    dto.getEmail()
+                    sanitize(dto.getEmail())
             );
             throw new EmployeeEmailAlreadyExistsException(dto.getEmail());
         }

@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.amit.ems.common.logging.LogSanitizer.sanitize;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -31,17 +33,18 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void register(RegisterRequest request) {
         String username = request.getUsername();
+        String safeUsername = sanitize(username);
 
         log.info(
                 "security_event=registration_attempt username={}",
-                username
+                safeUsername
         );
 
         if (userRepository.existsByUsername(username)) {
             log.warn(
                     "security_event=registration_rejected "
                             + "username={} reason=username_exists",
-                    username
+                    safeUsername
             );
 
             throw new UsernameAlreadyExistsException(username);
@@ -61,7 +64,7 @@ public class AuthServiceImpl implements AuthService {
             log.info(
                     "security_event=registration_succeeded "
                             + "username={} role={}",
-                    username,
+                    safeUsername,
                     user.getRole()
             );
         } catch (DataIntegrityViolationException exception) {
@@ -69,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
                     "security_event=registration_rejected "
                             + "username={} "
                             + "reason=concurrent_username_conflict",
-                    username
+                    safeUsername
             );
 
             throw new UsernameAlreadyExistsException(username);
@@ -79,6 +82,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(AuthRequest request) {
         String username = request.getUsername();
+        String safeUsername = sanitize(username);
 
         User user = userRepository
                 .findByUsername(username)
@@ -87,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
                             "security_event=login_failed "
                                     + "username={} "
                                     + "reason=bad_credentials",
-                            username
+                            safeUsername
                     );
 
                     return new BadCredentialsException(
@@ -103,7 +107,7 @@ public class AuthServiceImpl implements AuthService {
                     "security_event=login_failed "
                             + "username={} "
                             + "reason=bad_credentials",
-                    username
+                    safeUsername
             );
 
             throw new BadCredentialsException(
@@ -119,7 +123,7 @@ public class AuthServiceImpl implements AuthService {
         log.info(
                 "security_event=login_succeeded "
                         + "username={} role={}",
-                username,
+                safeUsername,
                 user.getRole()
         );
 

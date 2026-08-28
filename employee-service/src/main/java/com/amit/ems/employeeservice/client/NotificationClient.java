@@ -11,6 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import static com.amit.ems.common.logging.LogSanitizer.sanitize;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -63,8 +65,8 @@ public class NotificationClient {
         log.warn(
                 "Employee-created notification was not delivered "
                         + "for email {}: {}",
-                event.employeeEmail(),
-                throwable.getMessage()
+                sanitize(event.employeeEmail()),
+                sanitize(throwable.getMessage())
         );
     }
 

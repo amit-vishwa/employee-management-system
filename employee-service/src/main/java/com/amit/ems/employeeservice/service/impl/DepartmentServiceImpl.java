@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.amit.ems.common.logging.LogSanitizer.sanitize;
+
 import java.util.List;
 
 @Service
@@ -25,7 +27,10 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional
     public DepartmentDto createDepartment(DepartmentDto dto) {
-        log.info("Creating department with name: {}", dto.getName());
+        log.info(
+                "Creating department with name: {}",
+                sanitize(dto.getName())
+        );
         Department department = departmentMapper.toEntity(dto);
         Department saved = departmentRepository.save(department);
         return departmentMapper.toDto(saved);

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.amit.ems.common.logging.LogSanitizer.sanitize;
+
 @RestController
 @RequestMapping("/api/v1/notifications")
 @Slf4j
@@ -33,8 +35,11 @@ public class NotificationController {
             )
     })
     public ResponseEntity<Void> notifyEmployeeCreated(@RequestBody EmployeeCreatedEvent event) {
-        log.info("Notification: Welcome email would be sent to {} ({})",
-                event.getEmployeeName(), event.getEmployeeEmail());
+        log.info(
+                "Notification: Welcome email would be sent to {} ({})",
+                sanitize(event.getEmployeeName()),
+                sanitize(event.getEmployeeEmail())
+        );
         return ResponseEntity.ok().build();
     }
 }
