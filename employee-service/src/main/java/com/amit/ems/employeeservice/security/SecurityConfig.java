@@ -16,6 +16,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import static com.amit.ems.common.logging.LogSanitizer.sanitize;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -58,9 +60,9 @@ public class SecurityConfig {
                                             "security_event=access_denied "
                                                     + "username={} "
                                                     + "method={} path={}",
-                                            username,
-                                            request.getMethod(),
-                                            request.getRequestURI()
+                                            sanitize(username),
+                                            sanitize(request.getMethod()),
+                                            sanitize(request.getRequestURI())
                                     );
 
                                     response.setStatus(

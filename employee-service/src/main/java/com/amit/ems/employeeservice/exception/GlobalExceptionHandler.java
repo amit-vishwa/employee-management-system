@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
+import static com.amit.ems.common.logging.LogSanitizer.sanitize;
+
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -51,8 +53,8 @@ public class GlobalExceptionHandler {
         log.error(
                 "application_event=unhandled_exception "
                         + "method={} path={} exception={}",
-                request.getMethod(),
-                request.getRequestURI(),
+                sanitize(request.getMethod()),
+                sanitize(request.getRequestURI()),
                 exception.getClass().getSimpleName(),
                 exception
         );

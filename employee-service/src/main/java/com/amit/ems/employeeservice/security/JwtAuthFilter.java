@@ -15,6 +15,8 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import static com.amit.ems.common.logging.LogSanitizer.sanitize;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -55,8 +57,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             log.warn(
                     "security_event=jwt_rejected "
                             + "method={} path={} reason={}",
-                    request.getMethod(),
-                    request.getRequestURI(),
+                    sanitize(request.getMethod()),
+                    sanitize(request.getRequestURI()),
                     exception.getClass().getSimpleName()
             );
         }
