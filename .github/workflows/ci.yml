@@ -110,6 +110,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    env:
+      AUTH_IMAGE: ems-auth-service:${{ github.sha }}
+      EMPLOYEE_IMAGE: ems-employee-service:${{ github.sha }}
+      NOTIFICATION_IMAGE: ems-notification-service:${{ github.sha }}
+
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -126,3 +131,56 @@ jobs:
             auth-service \
             employee-service \
             notification-service
+
+      - name: Tag application images for scanning
+        run: |
+          docker tag \
+            "$(docker compose images -q auth-service)" \
+            "${AUTH_IMAGE}"
+
+          docker tag \
+            "$(docker compose images -q employee-service)" \
+            "${EMPLOYEE_IMAGE}"
+
+          docker tag \
+            "$(docker compose images -q notification-service)" \
+            "${NOTIFICATION_IMAGE}"
+
+      - name: Scan auth-service image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.AUTH_IMAGE }}
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+          hide-progress: true
+
+      - name: Scan employee-service image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.EMPLOYEE_IMAGE }}
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+          hide-progress: true
+
+      - name: Scan notification-service image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.NOTIFICATION_IMAGE }}
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+          hide-progress: true
