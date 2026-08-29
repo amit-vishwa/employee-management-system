@@ -128,6 +128,7 @@ jobs:
       - name: Build application images
         run: |
           docker compose build \
+            --pull \
             auth-service \
             employee-service \
             notification-service
