@@ -111,9 +111,9 @@ jobs:
     timeout-minutes: 20
 
     env:
-      AUTH_IMAGE: ems-auth-service:${{ github.sha }}
-      EMPLOYEE_IMAGE: ems-employee-service:${{ github.sha }}
-      NOTIFICATION_IMAGE: ems-notification-service:${{ github.sha }}
+      AUTH_SERVICE_IMAGE: ems-auth-service:${{ github.sha }}
+      EMPLOYEE_SERVICE_IMAGE: ems-employee-service:${{ github.sha }}
+      NOTIFICATION_SERVICE_IMAGE: ems-notification-service:${{ github.sha }}
 
     steps:
       - name: Check out repository
@@ -132,25 +132,11 @@ jobs:
             employee-service \
             notification-service
 
-      - name: Tag application images for scanning
-        run: |
-          docker tag \
-            "$(docker compose images -q auth-service)" \
-            "${AUTH_IMAGE}"
-
-          docker tag \
-            "$(docker compose images -q employee-service)" \
-            "${EMPLOYEE_IMAGE}"
-
-          docker tag \
-            "$(docker compose images -q notification-service)" \
-            "${NOTIFICATION_IMAGE}"
-
       - name: Scan auth-service image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
-          image-ref: ${{ env.AUTH_IMAGE }}
+          image-ref: ${{ env.AUTH_SERVICE_IMAGE }}
           scanners: vuln
           vuln-type: os,library
           severity: HIGH,CRITICAL
@@ -163,7 +149,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
-          image-ref: ${{ env.EMPLOYEE_IMAGE }}
+          image-ref: ${{ env.EMPLOYEE_SERVICE_IMAGE }}
           scanners: vuln
           vuln-type: os,library
           severity: HIGH,CRITICAL
@@ -176,7 +162,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
-          image-ref: ${{ env.NOTIFICATION_IMAGE }}
+          image-ref: ${{ env.NOTIFICATION_SERVICE_IMAGE }}
           scanners: vuln
           vuln-type: os,library
           severity: HIGH,CRITICAL
