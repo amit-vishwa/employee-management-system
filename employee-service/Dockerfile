@@ -20,6 +20,7 @@ FROM eclipse-temurin:17-jre-alpine
 
 RUN addgroup -S -g 10001 ems \
     && adduser -S -D -H -u 10001 -G ems ems
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 

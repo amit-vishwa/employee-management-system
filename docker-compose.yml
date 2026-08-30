@@ -44,6 +44,7 @@ services:
       start_period: 30s
 
   auth-service:
+    image: ${AUTH_SERVICE_IMAGE:-employee-management-system-auth-service:latest}
     build:
       context: .
       dockerfile: auth-service/Dockerfile
@@ -69,6 +70,7 @@ services:
       start_period: 120s
 
   employee-service:
+    image: ${EMPLOYEE_SERVICE_IMAGE:-employee-management-system-employee-service:latest}
     build:
       context: .
       dockerfile: employee-service/Dockerfile
@@ -97,6 +99,7 @@ services:
       start_period: 120s
 
   notification-service:
+    image: ${NOTIFICATION_SERVICE_IMAGE:-employee-management-system-notification-service:latest}
     build:
       context: .
       dockerfile: notification-service/Dockerfile
