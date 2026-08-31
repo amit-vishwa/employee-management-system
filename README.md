@@ -1,15 +1,16 @@
-# Employee Management System - Spring Boot 3.3
+# Employee Management System - Spring Boot 3.5
 
 [![CI](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/amit-vishwa/employee-management-system/actions/workflows/codeql.yml/badge.svg)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/codeql.yml)
 
-A multi-module Spring Boot microservices project for employee and department management. It demonstrates JWT authentication, role-based authorization, database migrations, resilient service-to-service communication, automated quality gates, Docker Compose, and local Kubernetes deployment.
+A multi-module Spring Boot microservices project for employee and department management. It demonstrates JWT authentication, role-based authorization, database migrations, resilient service-to-service communication, automated testing and security gates, Docker Compose, and local Kubernetes deployment.
 
 All required capabilities use free or open-source tooling. No paid service is required to build, test, or run the project locally.
 
 ## Technology Stack
 
 - Java 17
-- Spring Boot 3.3
+- Spring Boot 3.5
 - Spring Web MVC
 - Spring Data JPA
 - Spring Security
@@ -23,6 +24,11 @@ All required capabilities use free or open-source tooling. No paid service is re
 - JUnit 5, Mockito, AssertJ, and MockMvc
 - JaCoCo
 - SpotBugs
+- CycloneDX SBOM generation
+- Trivy vulnerability scanning
+- CodeQL code scanning
+- GitHub Dependency Review
+- Kubeconform manifest validation
 - Docker and Docker Compose
 - Kubernetes, Kind, and Kustomize
 - GitHub Actions
@@ -54,7 +60,8 @@ employee-management-system/
 |-- common/
 |   |-- shared exception contracts
 |   |-- JWT utilities
-|   `-- correlation-ID infrastructure
+|   |-- correlation-ID infrastructure
+|   `-- log-injection sanitization
 |-- auth-service/
 |   |-- registration and login
 |   |-- JWT generation
@@ -73,7 +80,14 @@ employee-management-system/
 |   |   `-- Kustomize configuration
 |   `-- kind/
 |       `-- local cluster configuration
-|-- .github/workflows/ci.yml
+|-- .github/
+|   |-- workflows/
+|   |   |-- ci.yml
+|   |   |-- codeql.yml
+|   |   `-- dependency-review.yml
+|   |-- dependabot.yml
+|   `-- SECURITY.md
+|-- LICENSE
 |-- docker-compose.yml
 |-- .env.example
 |-- pom.xml
@@ -118,6 +132,7 @@ The Maven `verify` lifecycle performs:
 - Packaging of executable Spring Boot JARs
 - JaCoCo coverage-report generation
 - SpotBugs static analysis
+- CycloneDX SBOM generation
 - Build failure for medium-or-higher-confidence SpotBugs findings
 
 Current test distribution:
@@ -138,6 +153,12 @@ Quality reports are generated under each module:
 <module>/target/site/jacoco/index.html
 <module>/target/site/jacoco/jacoco.xml
 <module>/target/spotbugsXml.xml
+```
+
+The aggregate CycloneDX SBOM is generated at:
+
+```text
+target/bom.json
 ```
 
 JaCoCo currently records an honest baseline rather than enforcing an arbitrary global threshold. The original employee-service baseline was 68% instruction coverage and 52% branch coverage, while the core service implementation reached 94% instruction coverage and 83% branch coverage.
@@ -168,23 +189,38 @@ For one test class:
 
 ## Continuous Integration
 
-GitHub Actions runs on pushes to `main`, pull requests targeting `main`, and manual workflow dispatch.
+GitHub Actions runs CI and CodeQL on pushes to `main`, pull requests targeting `main`, and manual workflow dispatch. CodeQL also runs on a weekly schedule. Dependency Review runs on pull requests targeting `main`.
 
-The ordered pipeline contains:
+The CI pipeline contains:
 
 1. **Maven Verify**
-   - Sets up Eclipse Temurin Java 17
-   - Runs the complete Maven reactor
-   - Executes tests, JaCoCo, and SpotBugs
-   - Uploads coverage and SpotBugs reports for seven days
-2. **Docker Image Build**
-   - Runs only after Maven verification succeeds
-   - Creates a temporary CI environment file from `.env.example`
-   - Validates the Docker Compose model
-   - Builds all three application images
-   - Does not start containers or publish images
+   - Sets up Eclipse Temurin Java 17.
+   - Runs the complete Maven reactor.
+   - Executes tests, JaCoCo, and SpotBugs.
+   - Generates and uploads JaCoCo, SpotBugs, and CycloneDX artifacts for seven days.
+   - Scans the CycloneDX SBOM with Trivy.
+   - Fails on fixable HIGH or CRITICAL vulnerabilities.
+2. **Kubernetes Manifest Validation**
+   - Renders the Kustomize base.
+   - Validates the rendered manifests with Kubeconform in strict mode.
+3. **Docker Image Build and Scan**
+   - Runs after Maven and Kubernetes validation succeed.
+   - Validates the Docker Compose model.
+   - Pulls current base images and builds all three application images.
+   - Tags CI images with the Git commit SHA.
+   - Scans OS and application-library packages in every image with Trivy.
+   - Fails on fixable HIGH or CRITICAL vulnerabilities.
+   - Does not start containers, publish images, or push them to a registry.
+4. **CodeQL**
+   - Builds and analyzes the Java code using the `security-extended` query suite.
+   - Publishes results to GitHub code scanning.
+5. **Dependency Review**
+   - Reviews dependency changes in pull requests.
+   - Fails when a newly introduced dependency vulnerability is HIGH or CRITICAL.
 
-Dependabot checks Maven and GitHub Actions dependencies weekly. Minor and patch Maven updates are grouped; major updates remain separate. Updates are never merged automatically and must pass CI.
+The protected `main` branch requires Maven Verify, Kubernetes Manifest Validation, Docker Image Build, and Dependency Review to pass before merging. Changes are merged through pull requests, and force pushes and branch deletion are blocked.
+
+Dependabot checks Maven and GitHub Actions dependencies weekly. Minor and patch Maven updates are grouped; major updates remain separate. Updates are never merged automatically and must pass all required checks.
 
 ## Secure Local Configuration
 
@@ -610,6 +646,25 @@ security_event=access_denied username=employee_demo method=GET path=/api/v1/empl
 
 Logs must never contain passwords, password hashes, JWT values, signing secrets, or database credentials.
 
+Values derived from usernames, email addresses, department names, request paths, exception messages, and notification events are sanitized before logging. Carriage-return and newline characters are replaced to prevent attackers from forging additional log entries.
+
+## Automated Security Controls
+
+The repository uses layered security checks:
+
+- SpotBugs detects implementation defects during Maven verification.
+- CycloneDX produces a machine-readable software bill of materials.
+- Trivy scans the SBOM for fixable HIGH and CRITICAL dependency vulnerabilities.
+- Trivy scans all three application images for vulnerable operating-system and library packages.
+- CodeQL performs scheduled and pull-request-aware static security analysis.
+- Dependency Review prevents vulnerable dependency changes from entering through pull requests.
+- Dependabot monitors Maven and GitHub Actions dependencies.
+- Secret scanning detects supported credentials committed to the repository.
+- Push protection blocks supported secrets before they are pushed.
+- Private vulnerability reporting provides a non-public reporting channel.
+
+The initial CodeQL baseline findings were reviewed and resolved. Log-injection findings were remediated through a shared sanitizer and focused tests.
+
 ## Troubleshooting
 
 ### Docker or BuildKit becomes unavailable
@@ -683,7 +738,7 @@ These are line-ending conversion notices, not compilation failures. Use `git dif
 - Employee-to-auth ownership is linked by username rather than a cross-database foreign key.
 - Flyway tests use H2 in MySQL compatibility mode; MySQL runtime verification is still required.
 - Notification delivery is synchronous after commit and has no idempotency or deduplication.
-- Docker images are built in CI but are not published to a registry.
+- Docker images are built and vulnerability-scanned in CI but are not published to a registry.
 - The Kubernetes configuration is designed for local Kind learning, not production deployment.
 - TLS, ingress, autoscaling, centralized logging, metrics dashboards, backups, and disaster recovery are not yet implemented.
 
@@ -693,12 +748,25 @@ These are line-ending conversion notices, not compilation failures. Use `git dif
 - Never place real credentials in example files.
 - Never commit, print, or share JWT tokens.
 - Never log passwords, hashes, tokens, signing secrets, or database credentials.
+- Sanitize untrusted values before writing them to logs.
 - Use different root and application database passwords.
 - Connect through dedicated application users instead of MySQL root.
 - Keep the JWT signing secret identical between auth-service and employee-service.
 - Run application containers as a non-root user.
 - Treat client-supplied correlation IDs as untrusted input.
 - Review dependency updates and require CI success before merging.
+- Require CodeQL, Dependency Review, SBOM scanning, and container-image scanning to remain successful.
+- Do not suppress a fixable HIGH or CRITICAL vulnerability without a documented risk assessment.
+
+## Repository Governance
+
+The repository uses the MIT License. See [LICENSE](LICENSE) for the full terms.
+
+Security vulnerabilities should be reported privately according to [.github/SECURITY.md](.github/SECURITY.md). Do not disclose credentials, exploit details, JWT signing material, or other sensitive information in a public issue.
+
+GitHub secret scanning, push protection, Dependabot alerts, private vulnerability reporting, CodeQL, Dependency Review, SBOM scanning, and container-image scanning are enabled.
+
+The protected `main` branch requires pull requests and successful status checks. Direct force pushes and deletion of the protected branch are blocked.
 
 ## Final Verification Checklist
 
