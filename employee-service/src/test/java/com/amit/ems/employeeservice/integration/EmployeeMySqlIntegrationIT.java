@@ -17,6 +17,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Testcontainers
 class EmployeeMySqlIntegrationIT {
 
+    private static final String MIGRATION_LOCATION =
+            "classpath:db/migration";
+
     @Container
     static final MySQLContainer<?> MYSQL =
             new MySQLContainer<>("mysql:8.0")
@@ -35,16 +38,25 @@ class EmployeeMySqlIntegrationIT {
                         MYSQL.getUsername(),
                         MYSQL.getPassword()
                 )
-                .locations("classpath:db/migration")
+                .locations(MIGRATION_LOCATION)
+                .failOnMissingLocations(true)
                 .load();
 
-        flyway.migrate();
+        var migrationResult = flyway.migrate();
 
-        DriverManagerDataSource dataSource = new DriverManagerDataSource(
-                MYSQL.getJdbcUrl(),
-                MYSQL.getUsername(),
-                MYSQL.getPassword()
-        );
+        assertThat(migrationResult.migrationsExecuted)
+                .as(
+                        "Flyway must execute the "
+                                + "employee-service MySQL migration"
+                )
+                .isGreaterThan(0);
+
+        DriverManagerDataSource dataSource =
+                new DriverManagerDataSource(
+                        MYSQL.getJdbcUrl(),
+                        MYSQL.getUsername(),
+                        MYSQL.getPassword()
+                );
 
         jdbcTemplate = new JdbcTemplate(dataSource);
     }
@@ -58,29 +70,36 @@ class EmployeeMySqlIntegrationIT {
     @Test
     void flywayShouldCreateTheEmployeeSchemaOnMySql() {
         assertThat(flyway.info().current()).isNotNull();
+
         assertThat(flyway.info().current().getVersion().getVersion())
                 .isEqualTo("1");
 
         assertThat(tableCount("departments")).isEqualTo(1);
         assertThat(tableCount("employees")).isEqualTo(1);
 
-        assertThat(indexCount(
-                "employees",
-                "uk_employees_email",
-                true
-        )).isGreaterThanOrEqualTo(1);
+        assertThat(
+                indexCount(
+                        "employees",
+                        "uk_employees_email",
+                        true
+                )
+        ).isGreaterThanOrEqualTo(1);
 
-        assertThat(indexCount(
-                "employees",
-                "uk_employees_auth_username",
-                true
-        )).isGreaterThanOrEqualTo(1);
+        assertThat(
+                indexCount(
+                        "employees",
+                        "uk_employees_auth_username",
+                        true
+                )
+        ).isGreaterThanOrEqualTo(1);
 
-        assertThat(indexCount(
-                "employees",
-                "idx_employees_department_id",
-                false
-        )).isGreaterThanOrEqualTo(1);
+        assertThat(
+                indexCount(
+                        "employees",
+                        "idx_employees_department_id",
+                        false
+                )
+        ).isGreaterThanOrEqualTo(1);
 
         Integer foreignKeyCount = jdbcTemplate.queryForObject(
                 """
@@ -98,7 +117,8 @@ class EmployeeMySqlIntegrationIT {
 
     @Test
     void employeesTableShouldEnforceUniqueEmailAddresses() {
-        Long departmentId = insertDepartment("Engineering");
+        Long departmentId =
+                insertDepartment("Engineering");
 
         insertEmployee(
                 "first.employee@example.com",
@@ -117,7 +137,8 @@ class EmployeeMySqlIntegrationIT {
 
     @Test
     void employeesTableShouldEnforceUniqueAuthUsernames() {
-        Long departmentId = insertDepartment("Human Resources");
+        Long departmentId =
+                insertDepartment("Human Resources");
 
         insertEmployee(
                 "employee.one@example.com",
@@ -181,12 +202,19 @@ class EmployeeMySqlIntegrationIT {
 
     private Long insertDepartment(String name) {
         jdbcTemplate.update(
-                "INSERT INTO departments (name) VALUES (?)",
+                """
+                INSERT INTO departments (name)
+                VALUES (?)
+                """,
                 name
         );
 
         return jdbcTemplate.queryForObject(
-                "SELECT id FROM departments WHERE name = ?",
+                """
+                SELECT id
+                FROM departments
+                WHERE name = ?
+                """,
                 Long.class,
                 name
         );

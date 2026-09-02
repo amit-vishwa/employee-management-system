@@ -4,9 +4,9 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.dao.DataAccessException;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -16,6 +16,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
 class AuthMySqlIntegrationIT {
+
+    private static final String MIGRATION_LOCATION =
+            "classpath:db/migration";
 
     @Container
     static final MySQLContainer<?> MYSQL =
@@ -35,16 +38,22 @@ class AuthMySqlIntegrationIT {
                         MYSQL.getUsername(),
                         MYSQL.getPassword()
                 )
-                .locations("classpath:db/migration")
+                .locations(MIGRATION_LOCATION)
+                .failOnMissingLocations(true)
                 .load();
 
-        flyway.migrate();
+        var migrationResult = flyway.migrate();
 
-        DriverManagerDataSource dataSource = new DriverManagerDataSource(
-                MYSQL.getJdbcUrl(),
-                MYSQL.getUsername(),
-                MYSQL.getPassword()
-        );
+        assertThat(migrationResult.migrationsExecuted)
+                .as("Flyway must execute the auth-service MySQL migration")
+                .isGreaterThan(0);
+
+        DriverManagerDataSource dataSource =
+                new DriverManagerDataSource(
+                        MYSQL.getJdbcUrl(),
+                        MYSQL.getUsername(),
+                        MYSQL.getPassword()
+                );
 
         jdbcTemplate = new JdbcTemplate(dataSource);
     }
@@ -57,6 +66,7 @@ class AuthMySqlIntegrationIT {
     @Test
     void flywayShouldCreateTheAuthSchemaOnMySql() {
         assertThat(flyway.info().current()).isNotNull();
+
         assertThat(flyway.info().current().getVersion().getVersion())
                 .isEqualTo("1");
 
@@ -98,14 +108,24 @@ class AuthMySqlIntegrationIT {
     @Test
     void usersTableShouldRejectUnsupportedRoles() {
         assertThatThrownBy(
-                () -> insertUser("invalid-role-user", "SUPER_ADMIN")
+                () -> insertUser(
+                        "invalid-role-user",
+                        "SUPER_ADMIN"
+                )
         ).isInstanceOf(DataAccessException.class);
     }
 
-    private void insertUser(String username, String role) {
+    private void insertUser(
+            String username,
+            String role
+    ) {
         jdbcTemplate.update(
                 """
-                INSERT INTO users (username, password, role)
+                INSERT INTO users (
+                    username,
+                    password,
+                    role
+                )
                 VALUES (?, ?, ?)
                 """,
                 username,
