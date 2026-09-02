@@ -1,14 +1,12 @@
 package com.amit.ems.authservice.integration;
 
-import com.amit.ems.authservice.AuthServiceApplication;
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.dao.DataAccessException;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -17,28 +15,39 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
-@SpringBootTest(
-        classes = AuthServiceApplication.class,
-        properties = {
-                "jwt.secret=testcontainers-auth-jwt-secret-that-is-at-least-32-bytes",
-                "spring.jpa.show-sql=false"
-        }
-)
 class AuthMySqlIntegrationIT {
 
     @Container
-    @ServiceConnection
     static final MySQLContainer<?> MYSQL =
             new MySQLContainer<>("mysql:8.0")
                     .withDatabaseName("auth_db")
                     .withUsername("auth_test_user")
                     .withPassword("auth_test_password");
 
-    @Autowired
-    private Flyway flyway;
+    private static Flyway flyway;
+    private static JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    @BeforeAll
+    static void initializeDatabase() {
+        flyway = Flyway.configure()
+                .dataSource(
+                        MYSQL.getJdbcUrl(),
+                        MYSQL.getUsername(),
+                        MYSQL.getPassword()
+                )
+                .locations("classpath:db/migration")
+                .load();
+
+        flyway.migrate();
+
+        DriverManagerDataSource dataSource = new DriverManagerDataSource(
+                MYSQL.getJdbcUrl(),
+                MYSQL.getUsername(),
+                MYSQL.getPassword()
+        );
+
+        jdbcTemplate = new JdbcTemplate(dataSource);
+    }
 
     @BeforeEach
     void cleanDatabase() {
