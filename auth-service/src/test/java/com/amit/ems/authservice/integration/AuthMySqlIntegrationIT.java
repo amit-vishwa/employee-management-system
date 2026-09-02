@@ -17,8 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Testcontainers
 class AuthMySqlIntegrationIT {
 
-    private static final String MIGRATION_LOCATION =
-            "classpath:db/migration";
+    private static final String MIGRATION_LOCATION_PROPERTY =
+            "mysql.migration.location";
 
     @Container
     static final MySQLContainer<?> MYSQL =
@@ -32,13 +32,20 @@ class AuthMySqlIntegrationIT {
 
     @BeforeAll
     static void initializeDatabase() {
+        String migrationLocation =
+                System.getProperty(MIGRATION_LOCATION_PROPERTY);
+
+        assertThat(migrationLocation)
+                .as("Maven must provide the compiled migration location")
+                .isNotBlank();
+
         flyway = Flyway.configure()
                 .dataSource(
                         MYSQL.getJdbcUrl(),
                         MYSQL.getUsername(),
                         MYSQL.getPassword()
                 )
-                .locations(MIGRATION_LOCATION)
+                .locations(migrationLocation)
                 .failOnMissingLocations(true)
                 .load();
 
