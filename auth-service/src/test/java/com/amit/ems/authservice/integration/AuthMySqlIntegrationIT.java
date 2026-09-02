@@ -1,5 +1,6 @@
 package com.amit.ems.authservice.integration;
 
+import com.amit.ems.authservice.AuthServiceApplication;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,10 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
-@SpringBootTest(properties = {
-        "jwt.secret=testcontainers-auth-jwt-secret-that-is-at-least-32-bytes",
-        "spring.jpa.show-sql=false"
-})
+@SpringBootTest(
+        classes = AuthServiceApplication.class,
+        properties = {
+                "jwt.secret=testcontainers-auth-jwt-secret-that-is-at-least-32-bytes",
+                "spring.jpa.show-sql=false"
+        }
+)
 class AuthMySqlIntegrationIT {
 
     @Container

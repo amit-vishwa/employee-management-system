@@ -1,5 +1,6 @@
 package com.amit.ems.employeeservice.integration;
 
+import com.amit.ems.employeeservice.EmployeeServiceApplication;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,11 +17,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
-@SpringBootTest(properties = {
-        "jwt.secret=testcontainers-employee-jwt-secret-that-is-at-least-32-bytes",
-        "spring.jpa.show-sql=false",
-        "spring.jpa.properties.hibernate.format_sql=false"
-})
+@SpringBootTest(
+        classes = EmployeeServiceApplication.class,
+        properties = {
+                "jwt.secret=testcontainers-employee-jwt-secret-that-is-at-least-32-bytes",
+                "spring.jpa.show-sql=false",
+                "spring.jpa.properties.hibernate.format_sql=false"
+        }
+)
 class EmployeeMySqlIntegrationIT {
 
     @Container
