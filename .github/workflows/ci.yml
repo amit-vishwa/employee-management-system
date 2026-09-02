@@ -37,7 +37,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Verify Maven reactor
-        run: ./mvnw --batch-mode --no-transfer-progress clean verify
+        run: ./mvnw --batch-mode --no-transfer-progress -Pmysql-integration-tests clean verify
 
       - name: Upload coverage reports
         if: always()
