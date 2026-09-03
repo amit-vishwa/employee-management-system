@@ -1,0 +1,4 @@
+# Opt-in local diagnostics. Do not activate in shared environments.
+logging:
+  level:
+    com.amit.ems: DEBUG
