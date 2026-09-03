@@ -9,7 +9,8 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [correlationId=%X{correlationId:-none}] %logger{36} - %msg%n"
   level:
-    com.amit.ems: DEBUG
+    root: INFO
+    com.amit.ems: INFO
 
 management:
   endpoints:
