@@ -1,6 +1,8 @@
 package com.amit.ems.common.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -81,6 +83,33 @@ class JwtUtilTest {
                 JwtException.class,
                 () -> jwtUtilWithDifferentSecret.extractUsername(token)
         );
+    }
+
+    @Test
+    void isTokenValid_shouldRejectExpiredToken() {
+        // Expire well in the past; no sleeps or timing-sensitive boundary checks.
+        ReflectionTestUtils.setField(jwtUtil, "expirationMs", -60_000L);
+        String token = jwtUtil.generateToken("amit", "ROLE_EMPLOYEE");
+
+        assertThrows(ExpiredJwtException.class,
+                () -> jwtUtil.isTokenValid(token, "amit"));
+    }
+
+    @Test
+    void isTokenValid_shouldRejectMalformedToken() {
+        assertThrows(JwtException.class,
+                () -> jwtUtil.isTokenValid("not-a-jwt", "amit"));
+    }
+
+    @Test
+    void isTokenValid_shouldRejectUnsignedToken() {
+        String token = Jwts.builder()
+                .subject("amit")
+                .claim("role", "ROLE_ADMIN")
+                .compact();
+
+        assertThrows(JwtException.class,
+                () -> jwtUtil.isTokenValid(token, "amit"));
     }
 
     private JwtUtil createJwtUtil(String secret) {
