@@ -108,7 +108,7 @@ jobs:
       - maven-verify
       - kubernetes-validate
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     env:
       AUTH_SERVICE_IMAGE: ems-auth-service:${{ github.sha }}
@@ -119,8 +119,18 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Create CI environment file
-        run: cp .env.example .env
+      - name: Create disposable CI environment file
+        run: |
+          umask 077
+          {
+            printf 'JWT_SECRET=%s\n' "$(openssl rand -hex 32)"
+            printf 'EMS_DB_ROOT_PASSWORD=%s\n' "$(openssl rand -hex 24)"
+            printf 'EMS_DB_USERNAME=ems_app\n'
+            printf 'EMS_DB_PASSWORD=%s\n' "$(openssl rand -hex 24)"
+            printf 'AUTH_DB_ROOT_PASSWORD=%s\n' "$(openssl rand -hex 24)"
+            printf 'AUTH_DB_USERNAME=auth_app\n'
+            printf 'AUTH_DB_PASSWORD=%s\n' "$(openssl rand -hex 24)"
+          } > .env
 
       - name: Validate Docker Compose model
         run: docker compose config --quiet
@@ -171,3 +181,17 @@ jobs:
           exit-code: "1"
           format: table
           hide-progress: true
+
+      - name: Start disposable Compose stack
+        run: docker compose up -d --no-build --wait --wait-timeout 300
+
+      - name: Run Compose smoke check
+        run: python3 scripts/compose-smoke.py
+
+      - name: Show Compose status on failure
+        if: failure()
+        run: docker compose ps
+
+      - name: Stop Compose stack
+        if: always()
+        run: docker compose down
