@@ -51,7 +51,9 @@ def api(base, path, *, method="GET", body=None, token=None, expected=200):
         f"{method} {path}: expected HTTP {expected}, received {status}",
     )
 
-    if response_body and "application/json" in content_type:
+    if response_body and (
+        "application/json" in content_type or "+json" in content_type
+    ):
         return json.loads(response_body)
 
     return None
