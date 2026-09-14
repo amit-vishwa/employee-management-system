@@ -384,6 +384,22 @@ docker compose down --volumes
 
 MySQL initialization credentials apply only to an empty data directory. Changing `.env` does not rotate credentials inside an existing database volume.
 
+## CI Docker Compose Smoke Check
+
+The CI Docker Image Build job starts a disposable five-container Compose stack
+after building and scanning the application images. It then runs
+`scripts/compose-smoke.py` with the runner's Python 3 installation.
+
+The check covers application health, registration and login, JWT authentication,
+role restrictions, department and employee CRUD, employee self-service, search,
+and the log-only employee-created notification path.
+
+The script is CI-only because it temporarily promotes a disposable registered
+user to HR inside the CI MySQL container. It must not be run against a shared
+or persistent environment. It does not print credentials or JWTs. Notification
+verification confirms the current best-effort logging behavior, not real email
+delivery or durable messaging.
+
 ## Local Kubernetes Deployment
 
 The complete stack can run on a local Kubernetes cluster using Kind. No cloud platform or external image registry is required.
