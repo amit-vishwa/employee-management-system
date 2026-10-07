@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -21,8 +21,8 @@ class EmployeeMySqlIntegrationIT {
             "mysql.migration.location";
 
     @Container
-    static final MySQLContainer<?> MYSQL =
-            new MySQLContainer<>("mysql:8.0")
+    static final MySQLContainer MYSQL =
+            new MySQLContainer("mysql:8.0")
                     .withDatabaseName("ems_db")
                     .withUsername("employee_test_user")
                     .withPassword("employee_test_password");
