@@ -1,4 +1,4 @@
-# Employee Management System - Spring Boot 3.5
+# Employee Management System - Spring Boot 4.0
 
 [![CI](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/amit-vishwa/employee-management-system/actions/workflows/codeql.yml/badge.svg)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/codeql.yml)
@@ -10,7 +10,7 @@ The project uses free or open-source tooling. No paid cloud service is required 
 ## Technology Stack
 
 - Java 17
-- Spring Boot 3.5
+- Spring Boot 4.0.8
 - Spring Web MVC
 - Spring Data JPA
 - Spring Security
@@ -23,7 +23,7 @@ The project uses free or open-source tooling. No paid cloud service is required 
 - Springdoc OpenAPI and Swagger UI
 - Maven multi-module reactor
 - Maven Surefire and Failsafe
-- JUnit 5, Mockito, AssertJ, and MockMvc
+- JUnit Jupiter, Mockito, AssertJ, and MockMvc
 - JaCoCo
 - SpotBugs
 - CycloneDX SBOM generation
