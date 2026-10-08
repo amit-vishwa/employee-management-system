@@ -31,9 +31,7 @@ public class DepartmentController {
     @PostMapping
     @Operation(
             summary = "Create department",
-            description = "Creates department and sends a best-effort "
-                    + "department-created notification. Notification failure "
-                    + "does not roll back department creation."
+            description = "Creates a department."
     )
     @ApiResponses({
             @ApiResponse(
@@ -146,7 +144,7 @@ public class DepartmentController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Employee was not found"
+                    description = "Department was not found"
             )
     })
     public ResponseEntity<Void> deleteDepartment(@PathVariable Long id) {
