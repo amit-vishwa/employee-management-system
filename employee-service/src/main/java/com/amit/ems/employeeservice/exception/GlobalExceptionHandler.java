@@ -6,9 +6,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -42,6 +45,34 @@ public class GlobalExceptionHandler {
                 .message(message)
                 .path(request.getRequestURI())
                 .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler({
+            HttpMessageNotReadableException.class,
+            MethodArgumentTypeMismatchException.class,
+            MissingServletRequestParameterException.class
+    })
+    public ResponseEntity<ErrorResponse> handleInvalidRequest(
+            Exception exception,
+            HttpServletRequest request
+    ) {
+        String message;
+        if (exception instanceof HttpMessageNotReadableException) {
+            message = "Request body is missing or invalid";
+        } else if (exception instanceof MethodArgumentTypeMismatchException) {
+            message = "Request parameter has an invalid type";
+        } else {
+            message = "A required request parameter is missing";
+        }
+
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(message)
+                .path(request.getRequestURI())
+                .build();
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
