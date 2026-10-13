@@ -20,6 +20,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -95,6 +96,72 @@ class EmployeeControllerTest {
                         .isNotEmpty())
                 .andExpect(jsonPath("$.timestamp")
                         .exists());
+    }
+
+    @Test
+    void createEmployee_withMalformedJson_shouldReturn400()
+            throws Exception {
+        mockMvc.perform(post("/api/v1/employees")
+                        .contentType("application/json")
+                        .content("{\"firstName\":"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message")
+                        .value("Request body is missing or invalid"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/employees"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+
+        verifyNoInteractions(employeeService);
+    }
+
+    @Test
+    void getEmployee_withNonnumericId_shouldReturn400()
+            throws Exception {
+        mockMvc.perform(get("/api/v1/employees/not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message")
+                        .value("Request parameter has an invalid type"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/employees/not-a-number"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+
+        verifyNoInteractions(employeeService);
+    }
+
+    @Test
+    void searchEmployees_withMissingValue_shouldReturn400()
+            throws Exception {
+        mockMvc.perform(get("/api/v1/employees/search")
+                        .param("criteria", "designation"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message")
+                        .value("A required request parameter is missing"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/employees/search"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+
+        verifyNoInteractions(employeeService);
+    }
+
+    @Test
+    void getEmployee_whenUnexpectedFailure_shouldReturnSanitized500()
+            throws Exception {
+        when(employeeService.getEmployeeById(1L))
+                .thenThrow(new IllegalStateException("internal-test-detail"));
+
+        mockMvc.perform(get("/api/v1/employees/1"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message")
+                        .value("An unexpected internal error occurred"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/employees/1"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+
+        verify(employeeService).getEmployeeById(1L);
     }
 
     @Test
