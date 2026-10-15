@@ -8,6 +8,8 @@ import com.amit.ems.employeeservice.repository.DepartmentRepository;
 import com.amit.ems.employeeservice.service.impl.DepartmentServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -36,6 +38,16 @@ class DepartmentServiceImplTest {
     private DepartmentDto departmentDto;
     private Department department;
 
+    @ParameterizedTest
+    @ValueSource(longs = {1L, 1000000L, 0L, -1L})
+    void createDepartment_withSuppliedId_shouldRejectBeforeAnySideEffects(Long id) {
+        departmentDto.setId(id);
+
+        assertThatThrownBy(() -> departmentService.createDepartment(departmentDto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Department ID must not be supplied when creating a department");
+        verifyNoInteractions(departmentRepository, departmentMapper);
+    }
     @BeforeEach
     void setUp() {
         department = Department.builder()
@@ -48,6 +60,7 @@ class DepartmentServiceImplTest {
 
     @Test
     void createDepartment_shouldReturnSavedDepartmentDto() {
+        departmentDto.setId(null);
         when(departmentMapper.toEntity(departmentDto)).thenReturn(department);
         when(departmentRepository.save(department)).thenReturn(department);
         when(departmentMapper.toDto(department)).thenReturn(departmentDto);
