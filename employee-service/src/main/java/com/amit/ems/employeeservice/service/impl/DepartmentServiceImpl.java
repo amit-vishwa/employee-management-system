@@ -27,6 +27,11 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional
     public DepartmentDto createDepartment(DepartmentDto dto) {
+        if (dto.getId() != null) {
+            throw new IllegalArgumentException(
+                    "Department ID must not be supplied when creating a department");
+        }
+
         log.info(
                 "Creating department with name: {}",
                 sanitize(dto.getName())

@@ -41,6 +41,11 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeDto createEmployee(EmployeeDto dto) {
+        if (dto.getId() != null) {
+            throw new IllegalArgumentException(
+                    "Employee ID must not be supplied when creating a employee");
+        }
+
         log.info(
                 "Creating employee with email: {}",
                 sanitize(dto.getEmail())

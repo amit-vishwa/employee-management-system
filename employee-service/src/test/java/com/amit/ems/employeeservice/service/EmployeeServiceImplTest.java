@@ -14,6 +14,8 @@ import com.amit.ems.employeeservice.service.impl.EmployeeServiceImpl;
 import com.amit.ems.employeeservice.strategy.EmployeeSearchStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -73,6 +75,16 @@ class EmployeeServiceImplTest {
     private EmployeeDto employeeDto;
     private Department department;
 
+    @ParameterizedTest
+    @ValueSource(longs = {1L, 1000000L, 0L, -1L})
+    void createEmployee_withSuppliedId_shouldRejectBeforeAnySideEffects(Long id) {
+        employeeDto.setId(id);
+
+        assertThatThrownBy(() -> employeeService.createEmployee(employeeDto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Employee ID must not be supplied when creating a employee");
+        verifyNoInteractions(employeeRepository, departmentRepository, employeeMapper, eventPublisher);
+    }
     @BeforeEach
     void setUp() {
         department = Department.builder()
@@ -127,6 +139,7 @@ class EmployeeServiceImplTest {
 
     @Test
     void createEmployee_shouldReturnSavedEmployeeDto() {
+        employeeDto.setId(null);
         when(employeeRepository.existsByEmail(EMPLOYEE_EMAIL))
                 .thenReturn(false);
         when(employeeRepository.existsByAuthUsername(
@@ -162,6 +175,7 @@ class EmployeeServiceImplTest {
 
     @Test
     void createEmployee_whenEmailExists_shouldThrowConflict() {
+        employeeDto.setId(null);
         when(employeeRepository.existsByEmail(EMPLOYEE_EMAIL))
                 .thenReturn(true);
 
@@ -188,6 +202,7 @@ class EmployeeServiceImplTest {
 
     @Test
     void createEmployee_whenDatabaseRaceOccurs_shouldThrowConflict() {
+        employeeDto.setId(null);
         when(employeeRepository.existsByEmail(EMPLOYEE_EMAIL))
                 .thenReturn(false);
         when(employeeRepository.existsByAuthUsername(
@@ -222,6 +237,7 @@ class EmployeeServiceImplTest {
 
     @Test
     void createEmployee_whenAuthUsernameExists_shouldThrowConflict() {
+        employeeDto.setId(null);
         when(employeeRepository.existsByEmail(EMPLOYEE_EMAIL))
                 .thenReturn(false);
         when(employeeRepository.existsByAuthUsername(
@@ -249,6 +265,7 @@ class EmployeeServiceImplTest {
 
     @Test
     void createEmployee_withoutAuthUsername_shouldAllowUnlinkedEmployee() {
+        employeeDto.setId(null);
         employeeDto.setAuthUsername(null);
         employee.setAuthUsername(null);
 
