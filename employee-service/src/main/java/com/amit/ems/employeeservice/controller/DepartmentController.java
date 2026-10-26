@@ -47,6 +47,10 @@ public class DepartmentController {
                     description = "JWT is missing or invalid"
             ),
             @ApiResponse(
+                    responseCode = "409",
+                    description = "A department with that name already exists"
+            ),
+            @ApiResponse(
                     responseCode = "403",
                     description = "Authenticated user lacks ADMIN or HR role"
             )
@@ -117,6 +121,10 @@ public class DepartmentController {
             @ApiResponse(
                     responseCode = "403",
                     description = "Authenticated user lacks ADMIN or HR role"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "A department with that name already exists"
             ),
             @ApiResponse(
                     responseCode = "404",
