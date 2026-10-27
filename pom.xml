@@ -260,6 +260,7 @@
                         <version>${maven-failsafe-plugin.version}</version>
 
                         <configuration>
+                            <classesDirectory>${project.build.outputDirectory}</classesDirectory>
                             <systemPropertyVariables>
                                 <mysql.migration.location>
                                     filesystem:${project.build.outputDirectory}/db/migration
