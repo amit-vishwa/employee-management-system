@@ -6,7 +6,8 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "departments")
+@Table(name = "departments", uniqueConstraints =
+        @UniqueConstraint(name = "uk_departments_name", columnNames = "name"))
 @Getter
 @Setter
 @Builder
@@ -21,7 +22,7 @@ public class Department {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)

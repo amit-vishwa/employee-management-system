@@ -62,14 +62,14 @@ class DepartmentServiceImplTest {
     void createDepartment_shouldReturnSavedDepartmentDto() {
         departmentDto.setId(null);
         when(departmentMapper.toEntity(departmentDto)).thenReturn(department);
-        when(departmentRepository.save(department)).thenReturn(department);
+        when(departmentRepository.saveAndFlush(department)).thenReturn(department);
         when(departmentMapper.toDto(department)).thenReturn(departmentDto);
 
         DepartmentDto result = departmentService.createDepartment(departmentDto);
 
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("Engineering");
-        verify(departmentRepository, times(1)).save(department);
+        verify(departmentRepository, times(1)).saveAndFlush(department);
     }
 
     @Test
@@ -108,7 +108,7 @@ class DepartmentServiceImplTest {
         DepartmentDto updateRequest = DepartmentDto.builder().name("Engineering & Platform").build();
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
-        when(departmentRepository.save(department)).thenReturn(department);
+        when(departmentRepository.saveAndFlush(department)).thenReturn(department);
         when(departmentMapper.toDto(department)).thenReturn(
                 DepartmentDto.builder().id(1L).name("Engineering & Platform").build()
         );
@@ -117,7 +117,7 @@ class DepartmentServiceImplTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("Engineering & Platform");
-        verify(departmentRepository, times(1)).save(department);
+        verify(departmentRepository, times(1)).saveAndFlush(department);
     }
 
     @Test
@@ -130,7 +130,7 @@ class DepartmentServiceImplTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Department not found with id: 99");
 
-        verify(departmentRepository, never()).save(any());
+        verify(departmentRepository, never()).saveAndFlush(any());
     }
 
     @Test
