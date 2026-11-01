@@ -115,9 +115,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
-    @ExceptionHandler(DepartmentNameAlreadyExistsException.class)
+    @ExceptionHandler({DepartmentNameAlreadyExistsException.class, DepartmentNotEmptyException.class})
     public ResponseEntity<ErrorResponse> handleDepartmentNameConflict(
-            DepartmentNameAlreadyExistsException exception, HttpServletRequest request) {
+            RuntimeException exception, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())

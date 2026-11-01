@@ -135,21 +135,21 @@ class DepartmentServiceImplTest {
 
     @Test
     void deleteDepartment_whenExists_shouldDeleteSuccessfully() {
-        when(departmentRepository.existsById(1L)).thenReturn(true);
+        when(departmentRepository.deleteDepartmentRowById(1L)).thenReturn(1);
 
         departmentService.deleteDepartment(1L);
 
-        verify(departmentRepository, times(1)).deleteById(1L);
+        verify(departmentRepository, times(1)).deleteDepartmentRowById(1L);
     }
 
     @Test
     void deleteDepartment_whenNotFound_shouldThrowException() {
-        when(departmentRepository.existsById(99L)).thenReturn(false);
+        when(departmentRepository.deleteDepartmentRowById(99L)).thenReturn(0);
 
         assertThatThrownBy(() -> departmentService.deleteDepartment(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Department not found with id: 99");
 
-        verify(departmentRepository, never()).deleteById(any());
+        verify(departmentRepository).deleteDepartmentRowById(99L);
     }
 }

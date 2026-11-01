@@ -4,6 +4,7 @@ import com.amit.ems.common.exception.ResourceNotFoundException;
 import com.amit.ems.employeeservice.dto.DepartmentDto;
 import com.amit.ems.employeeservice.entity.Department;
 import com.amit.ems.employeeservice.exception.DepartmentNameAlreadyExistsException;
+import com.amit.ems.employeeservice.exception.DepartmentNotEmptyException;
 import com.amit.ems.employeeservice.mapper.DepartmentMapper;
 import com.amit.ems.employeeservice.repository.DepartmentRepository;
 import com.amit.ems.employeeservice.service.DepartmentService;
@@ -108,10 +109,35 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional
     public void deleteDepartment(Long id) {
-        if (!departmentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Department not found with id: " + id);
+        try {
+            if (departmentRepository.deleteDepartmentRowById(id) == 0) {
+                throw new ResourceNotFoundException("Department not found with id: " + id);
+            }
+        } catch (DataIntegrityViolationException exception) {
+            if (isEmployeeReferenceConflict(exception)) {
+                throw new DepartmentNotEmptyException();
+            }
+            throw exception;
         }
-        departmentRepository.deleteById(id);
         log.info("Deleted department with id: {}", id);
+    }
+
+    private static boolean isEmployeeReferenceConflict(Throwable exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException violation) {
+                String constraint = violation.getConstraintName();
+                var sql = violation.getSQLException();
+                if (constraint == null || sql == null) {
+                    return false;
+                }
+                String name = constraint.toUpperCase(Locale.ROOT)
+                        .replace("`", "").replace("\"", "").split(":", 2)[0];
+                name = name.substring(name.lastIndexOf('.') + 1);
+                return "FK_EMPLOYEES_DEPARTMENT".equals(name)
+                        && ("23503".equals(sql.getSQLState())
+                        || ("23000".equals(sql.getSQLState()) && sql.getErrorCode() == 1451));
+            }
+        }
+        return false;
     }
 }

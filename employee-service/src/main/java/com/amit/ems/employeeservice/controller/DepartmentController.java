@@ -151,6 +151,10 @@ public class DepartmentController {
                     description = "Authenticated user lacks ADMIN or HR role"
             ),
             @ApiResponse(
+                    responseCode = "409",
+                    description = "Department contains employees"
+            ),
+            @ApiResponse(
                     responseCode = "404",
                     description = "Department was not found"
             )

@@ -25,6 +25,6 @@ public class Department {
     @Column(nullable = false)
     private String name;
 
-    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "department", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH, CascadeType.DETACH})
     private List<Employee> employees;
 }
