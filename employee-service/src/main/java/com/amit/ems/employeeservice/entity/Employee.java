@@ -38,6 +38,6 @@ public class Employee {
     private LocalDate dateOfJoining;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
+    @JoinColumn(name = "department_id", foreignKey = @ForeignKey(name = "fk_employees_department"))
     private Department department;
 }
