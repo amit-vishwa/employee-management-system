@@ -18,10 +18,10 @@
         <jackson.version>2.22.4</jackson.version>
         <jackson3.version>3.2.4</jackson3.version>
         <tomcat.version>11.0.27</tomcat.version>
-        <springdoc.version>3.1.1</springdoc.version>
+        <springdoc.version>3.2.0</springdoc.version>
         <lombok.version>1.18.48</lombok.version>
         <jjwt.version>0.13.0</jjwt.version>
-        <jacoco.version>0.8.15</jacoco.version>
+        <jacoco.version>0.8.16</jacoco.version>
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
         <maven-failsafe-plugin.version>3.6.1</maven-failsafe-plugin.version>
         <spotbugs-maven-plugin.version>4.10.5.0</spotbugs-maven-plugin.version>
