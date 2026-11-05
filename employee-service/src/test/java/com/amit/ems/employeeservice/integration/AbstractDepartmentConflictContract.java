@@ -115,14 +115,21 @@ abstract class AbstractDepartmentConflictContract {
 
     @Test
     void unrelatedDatabaseFailureStays500AndDoesNotLeakSql() throws Exception {
-        // DTO length validation is separate work; this deliberately reaches the real column limit.
-        mvc.perform(post(API).with(user("fixture").roles("ADMIN"))
-                        .contentType("application/json")
-                        .content("{\"name\":\"" + "x".repeat(256) + "\"}"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.status").value(500))
-                .andExpect(jsonPath("$.message").value("An unexpected internal error occurred"));
-        assertThat(count()).isZero();
+        jdbc.execute("ALTER TABLE departments ADD CONSTRAINT ck_test_rejected_name CHECK (name <> 'Rejected by database')");
+        try {
+            mvc.perform(post(API).with(user("fixture").roles("ADMIN"))
+                            .contentType("application/json").content("{\"name\":\"Rejected by database\"}"))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(jsonPath("$.status").value(500))
+                    .andExpect(jsonPath("$.message").value("An unexpected internal error occurred"));
+            assertThat(count()).isZero();
+        } finally {
+            try (var connection = jdbc.getDataSource().getConnection()) {
+                String product = connection.getMetaData().getDatabaseProductName();
+                jdbc.execute("ALTER TABLE departments DROP " + ("MySQL".equals(product) ? "CHECK" : "CONSTRAINT")
+                        + " ck_test_rejected_name");
+            }
+        }
     }
 
     private long create(String name) {
