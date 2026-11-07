@@ -1,4 +1,4 @@
-# Employee Management System - Spring Boot 4.0
+# Employee Management System
 
 [![CI](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/amit-vishwa/employee-management-system/actions/workflows/codeql.yml/badge.svg)](https://github.com/amit-vishwa/employee-management-system/actions/workflows/codeql.yml)
@@ -7,10 +7,21 @@ A multi-module Spring Boot microservices project for employee and department man
 
 The project uses free or open-source tooling. No paid cloud service is required to build, test, or run it locally.
 
+## Five-minute reviewer guide
+
+Start here to understand the project; building or starting the stack takes additional time.
+
+1. **Understand the design:** read [Architecture](#architecture) and [Authentication and Authorization](#authentication-and-authorization). Auth and employee data live in separate databases; employee ownership is linked by username.
+2. **Inspect a real API journey:** follow [login, create and search](docs/reviewer-guide.md#login-create-and-search), then inspect the existing [Compose smoke script](scripts/compose-smoke.py).
+3. **Review the engineering evidence:** see [Build and Test](#build-and-test), [CI](#continuous-integration), and the [workflow runs](https://github.com/amit-vishwa/employee-management-system/actions/workflows/ci.yml). Open a specific run to inspect its results; workflow configuration alone is not proof of execution.
+4. **Choose how to explore:** run the [Docker-free verification](#fast-verification-without-docker), or use [secure configuration](#secure-local-configuration) and [Docker Compose setup](#docker-compose-deployment) for the runtime. The [reviewer guide](docs/reviewer-guide.md) explains prerequisites and what each path verifies.
+
+Notifications currently log intended delivery after commit; they do not send email or provide durable delivery guarantees. See [Important Limitations](#important-limitations).
+
 ## Technology Stack
 
 - Java 17
-- Spring Boot 4.0.8
+- Spring Boot 4.1.2
 - Spring Web MVC
 - Spring Data JPA
 - Spring Security
