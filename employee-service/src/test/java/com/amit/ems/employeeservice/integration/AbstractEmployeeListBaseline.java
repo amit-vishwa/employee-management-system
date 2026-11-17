@@ -4,7 +4,7 @@ import com.amit.ems.employeeservice.dto.EmployeeDto;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +26,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Request-only SQL counts, with committed JDBC fixtures and no outer test transaction. */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestPropertySource(properties = {
         "spring.jpa.open-in-view=false",
         "spring.jpa.properties.hibernate.generate_statistics=true",
@@ -40,24 +39,27 @@ abstract class AbstractEmployeeListBaseline {
     @Autowired JdbcTemplate jdbc;
     @Autowired JsonMapper mapper;
     @Autowired EntityManagerFactory emf;
-    private Path report;
 
     @BeforeAll
-    void startReport() throws Exception {
-        report = Path.of("target", getClass().getSimpleName() + ".csv");
+    static void startReport(TestInfo info) throws Exception {
+        Path report = Path.of("target", info.getTestClass().orElseThrow().getSimpleName() + ".csv");
         Files.createDirectories(report.getParent());
         Files.writeString(report, "employees,departments,sql_statements,response_bytes\n", StandardCharsets.UTF_8);
-        try (Connection connection = jdbc.getDataSource().getConnection()) {
-            var metadata = connection.getMetaData();
-            System.out.printf("BASELINE_ENV java=%s database=%s %s hibernate=%s%n",
-                    System.getProperty("java.version"), metadata.getDatabaseProductName(),
-                    metadata.getDatabaseProductVersion(), org.hibernate.Version.getVersionString());
-        }
+
     }
 
     @ParameterizedTest(name = "employees={0}, departments={1}")
     @CsvSource({"0,0", "10,0", "10,1", "10,10", "100,1", "100,10", "100,100"})
     void measureEmployeeList(int employees, int departments) throws Exception {
+        Path report = Path.of("target", getClass().getSimpleName() + ".csv");
+        if (employees == 0) {
+            try (Connection connection = jdbc.getDataSource().getConnection()) {
+                var metadata = connection.getMetaData();
+                System.out.printf("BASELINE_ENV java=%s database=%s %s hibernate=%s%n",
+                        System.getProperty("java.version"), metadata.getDatabaseProductName(),
+                        metadata.getDatabaseProductVersion(), org.hibernate.Version.getVersionString());
+            }
+        }
         assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
         assertThat(emf.getProperties().get("hibernate.generate_statistics").toString()).isEqualTo("true");
         // This test owns its isolated database. Explicit IDs keep serialized payloads reproducible.
