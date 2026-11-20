@@ -49,8 +49,9 @@ abstract class AbstractEmployeeListBaseline {
     }
 
     @ParameterizedTest(name = "employees={0}, departments={1}")
-    @CsvSource({"0,0", "10,0", "10,1", "10,10", "100,1", "100,10", "100,100"})
-    void measureEmployeeList(int employees, int departments) throws Exception {
+    @CsvSource({"0,0,2", "10,0,2084", "10,1,2154", "10,10,2156",
+            "100,1,21777", "100,10,21797", "100,100,21961"})
+    void measureEmployeeList(int employees, int departments, int expectedBytes) throws Exception {
         Path report = Path.of("target", getClass().getSimpleName() + ".csv");
         if (employees == 0) {
             try (Connection connection = jdbc.getDataSource().getConnection()) {
@@ -91,11 +92,19 @@ abstract class AbstractEmployeeListBaseline {
             assertThat(rows).extracting(EmployeeDto::getId).doesNotHaveDuplicates();
             for (EmployeeDto row : rows) {
                 assertThat(row.getId()).isBetween(1L, (long) employees);
+                assertThat(row.getFirstName()).isEqualTo("Employee-" + row.getId());
+                assertThat(row.getLastName()).isEqualTo("Example");
+                assertThat(row.getEmail()).isEqualTo("employee-" + row.getId() + "@example.invalid");
+                assertThat(row.getAuthUsername()).isNull();
+                assertThat(row.getDesignation()).isEqualTo("Engineer");
+                assertThat(row.getDateOfJoining()).isEqualTo(java.time.LocalDate.of(2026, 1, 1));
                 Long expected = departments == 0 ? null : (row.getId() - 1) % departments + 1;
                 assertThat(row.getDepartmentId()).isEqualTo(expected);
                 assertThat(row.getDepartmentName()).isEqualTo(expected == null ? null : "Department-" + expected);
             }
-            assertThat(queries).isPositive();
+            assertThat(queries).as("employee list fetches departments in one statement").isEqualTo(1);
+            assertThat(response.length).as("serialized size matches the pre-optimization fixture")
+                    .isEqualTo(expectedBytes);
             if (repetition == 0) {
                 firstQueries = queries;
                 firstBytes = response.length;

@@ -1,6 +1,7 @@
 package com.amit.ems.employeeservice.repository;
 
 import com.amit.ems.employeeservice.entity.Employee;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -8,6 +9,10 @@ import java.util.Optional;
 
 public interface EmployeeRepository
         extends JpaRepository<Employee, Long> {
+
+    @Override
+    @EntityGraph(attributePaths = "department")
+    List<Employee> findAll();
 
     List<Employee> findByDesignation(String designation);
 
