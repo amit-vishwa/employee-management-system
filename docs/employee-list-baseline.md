@@ -1,6 +1,6 @@
 # Employee-list query and payload baseline
 
-Baseline application revision: `8d3ff84fb76829b6105a2e2df6ab23e3f0264e71` (after dependency PR #78). This contribution changes tests and documentation only; endpoint, fetching and pagination behavior are unchanged.
+Baseline application revision: `8d3ff84fb76829b6105a2e2df6ab23e3f0264e71` (after dependency PR #78). The baseline contribution (PR #79) changed tests and documentation only; endpoint, fetching and pagination behavior were unchanged in that PR.
 
 ## Reproduce without Docker
 
@@ -53,4 +53,28 @@ Its report is `employee-service/target/EmployeeListBaselineMySqlIT.csv`; `BASELI
 
 ## Follow-up
 
-Use measured SQL growth to decide whether a focused fetch plan is justified. Separately, the current endpoint returns every employee, so payload growth remains a pagination/design concern even if query count is improved. Neither optimization belongs in this baseline change.
+Issue #80 uses the measured SQL growth to justify a focused fetch plan. `EmployeeRepository.findAll()` now declares an entity graph for `department`. Hibernate fetches the optional to-one association with the list query; employees with no department remain present. Other repository methods and the entity's lazy mapping are unchanged. The controller, mapper, array response and authorization are unchanged.
+
+The existing seven-case harness now asserts one request-time SQL statement for each cold request and checks all employee DTO fields against the fixture. It also asserts the pre-optimization fixture byte lengths above. These byte expectations intentionally detect serialization drift and must be reviewed if the API contract changes. No list ordering guarantee is introduced.
+
+Before the production change, the new query assertion failed in the five scenarios containing departments, including 101 statements for 100 employees in 100 departments; the empty and null-department scenarios passed. This confirms the regression catches the original issue.
+
+Local H2 after-change results and hosted MySQL status are recorded below. The MySQL subclass inherits these same assertions and runs in the existing CI profile. Local Docker is unavailable; do not treat local success as MySQL validation.
+
+Separately, the endpoint still returns every employee. Response bounds and pagination remain a separate API-design concern; reducing SQL statements does not bound payload size or prove a latency improvement.
+
+### Focused fetch-plan results (issue #80)
+
+Executed November 19, 2026 in the isolated review copy with Java 17.0.20.1, H2 2.4.240 and Hibernate 7.4.13.Final, using installed Maven 3.10.0 (wrapper: 3.10.1). All seven scenarios passed, each with two cold requests:
+
+| Employees | Distinct departments | Before SQL | After SQL | Body bytes (unchanged) |
+|---:|---:|---:|---:|---:|
+| 0 | 0 | 1 | 1 | 2 |
+| 10 | 0 | 1 | 1 | 2,084 |
+| 10 | 1 | 2 | 1 | 2,154 |
+| 10 | 10 | 11 | 1 | 2,156 |
+| 100 | 1 | 2 | 1 | 21,777 |
+| 100 | 10 | 11 | 1 | 21,797 |
+| 100 | 100 | 101 | 1 | 21,961 |
+
+The pre-change MySQL baseline in PR #79 matched these before counts and bytes (MySQL 8.0.46, Java 17.0.21). The after-change MySQL result is pending hosted CI; do not infer it from H2. Reuse the commands above to run the regression and compare its printed report.
